@@ -104,7 +104,7 @@ In dieser Übung arbeiten Sie mit einer Website und möchten auf einen Unterschi
 
 ```{r}
 library(pwr)
-h <- ES.h(p1 = 0.25, p2 = 0.20)
+h <- ES.h(p1 = 0.20, p2 = 0.25)
 h
 
 t1 <- pwr.2p.test(h, sig.level = 0.05, power = 0.95)
