@@ -1,5 +1,5 @@
 import tkinter as tk
-from random import randrange
+from random import randint
 
 from tkinter import Button
 
@@ -10,12 +10,13 @@ class View(tk.Frame):
         self.window.title("Übung 1")
         self.window.geometry("300x300")
 
-        self.button = Button(self.window, command=self.btnCallback, padx = 20, pady = 20)
+        self.button = Button(self.window, command=self.btnCallback, padx = 10, pady = 10)
         self.button.place(x=50, y=50)
 
     def btnCallback(self):
-        newX = randrange(200)
-        newY = randrange(200)
+        # generate a random 
+        newX = randint(50, 250)
+        newY = randint(50, 250)
         print(newX, newY)
         self.button.place(x=newX, y=newY)
         
