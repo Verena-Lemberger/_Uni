@@ -18,6 +18,7 @@ loadRData <- function(fileName){
 ```{r setup}
 library(tidyverse)
 library(ggplot2)
+library(GGally)
 library(Rmisc)
 laptops_unclean <- loadRData("data/laptops_unclean.RData")
 weatherAUS <- read.csv("data/weatherAUS.csv")
@@ -55,7 +56,7 @@ ggplot(data = linear_model, mapping = aes(x=x, y=y)) + geom_point()
 coef_lm <- cor.test(x,y,method="pearson")
 coef_lm
 
-# Humidity3pm und Humidity9am korrelieren moderat miteinander. Im Plot können wir ebenso eine Heteroskedastizität erkennen, weil mit zunehmender Luftfeuchtigkeit (3pm) gehen die Werte y-Werte immer stärker auseinander. Dies bedeutet, dass die Vorhersagekraft von y, ausgehend von x, geringer wird, je größer der Wert von x ist. 
+# Humidity3pm und Humidity9am korrelieren moderat miteinander. Im Plot können wir ebenso eine Heteroskedastizität erkennen, weil mit zunehmender Luftfeuchtigkeit (3pm) gehen die Werte y-Werte immer stärker auseinander. Dies bedeutet, dass die Vorhersagekraft von y, ausgehend von x, geringer wird, je größer der Wert von x ist. Allerdings ist die Heteroskedastizität nicht extrem groß.
 
 ```
 
@@ -76,7 +77,7 @@ Kommen wir zur Berechnung der R-Quadrat-, mittleren quadratischen Fehler- und mi
 ```{r}
 # R-squared score
 # https://de.wikipedia.org/wiki/Bestimmtheitsma%C3%9F#Als_quadrierter_Korrelationskoeffizient
-r2 <- coef_lm$estimate ^ 2
+r2 <- coef_lm$estimate ^ 2 # cbr() ° 2
 r2
 # Wir können den Koeffizienten nehmen, weil wir eine linçceare Regression haben (deshalb können wir auch den Pearson-Koeffizient verwenden). 
 # Je geringer die Abweichung der Residuen zum Modell ist, desto näher ist der Wert von R2 an 1 ist.R2 gibt an wie gut die unabhängige(n) Variable(n) die abhängige Variable prognoszitieren können.
@@ -113,25 +114,44 @@ Lassen Sie uns üben, mit Nullwerten mit unserem Laptops-Datensatz umzugehen, mi
 - Passen Sie den Code an, dass der Preis mit dem Median aufgefüllt wird. geben Sie den Head aus.
 
 ```{r}
-# Identify and print the the rows with null values
-nulls <- laptops_unclean %>% filter(is.na(Price_euros))
-nulls
+length_unclean <- laptops_unclean$Price_euros %>% length()
+length_unclean
+
+# Identify and print the the rows with null values 
+## create a new df from all the rows with NA in the Price_euros column
+missing_data <- laptops_unclean[ !(laptops_unclean$Price_euros), ]
+missing_data_length <- clean_test$Price_euros %>% length()
+clean_data_length <- length_unclean - missing_data_length
+head(missing_data)
+missing_data_length
+clean_data_length
 
 # calculate median
-medianDF <- laptops_unclean %>% filter(!is.na(Price_euros))
-medianDF <- median(medianDF$Price_euros)
-medianDF
+clean <- laptops_unclean$Price_euros %>% na.omit()
+medianDF_clean <- median(clean)
+meanDF_clean <- mean(clean)
+medianDF_clean
+meanDF_clean
 
 # Impute constant value 0 and print the head
 laptops_impute_0 <- laptops_unclean %>% mutate(Price_euros = replace(Price_euros, is.na(Price_euros), 0))
+medianDF <- median(laptops_impute_0$Price_euros)
+meanDF <- mean(laptops_impute_0$Price_euros)
 head(laptops_impute_0)
+medianDF
+meanDF
 
 # Impute median price and print the head
-laptops_impute_med <- laptops_unclean %>% mutate(Price_euros = replace(Price_euros, is.na(Price_euros), medianDF))
+laptops_impute_med <- laptops_unclean %>% mutate(Price_euros = replace(Price_euros, is.na(Price_euros), medianDF_clean))
+medianDF <- median(laptops_impute_med$Price_euros)
+meanDF <- mean(laptops_impute_med$Price_euros)
 head(laptops_impute_med)
+medianDF
+meanDF
 
-# Das Ändern der fehlenden Werte hat Auswirkungen auf die Statistik des Data Sets. Bspw. ändert sich der Mean und der Median wenn man die Werte entfernt oder ersetzt. Beim Einsetzen des Means wird bspw. auch die Varianz kleiner, da die Abweichung somit gleich 0 ist. 
-
+# Das Ändern der fehlenden Werte hat Auswirkungen auf die Statistik des Data Sets. Insgesamt gibt es 1291 korrekte Datensätze. Der Median des bereinigten Datensets ist 977, der Mean liegt bei 1124.677. 
+# Setzt man für die fehlenden Werte 0 ein verringert sich der Median auf 960, da der Datensatz ingesamt mehr Werte enthält und neue, kleinere Werte hinzukommen. Der Mean verringert sich auf 1114.319.
+# Beim Einsetzen des Medians ändert sich der insgesamte Median im Vergleich zum bereinigten Datenset nicht (da der gleiche Wert eingesetzt wird), er ist bleibt bei 977. Der Mean verringert sich allerdings geringfügig auf 1123.317.
 ```
 
 
@@ -159,7 +179,8 @@ laptops_price_std <- sd(price)
 laptops_price_mean
 laptops_price_std
 
-threeSDS = laptops_price_std * 3
+threeSDS = laptops_price_std * 3 # 3 Standardabweichungen
+threeSDS
 
 # Compute and print the upper and lower threshold
 cut_off <- c(laptops_price_mean - threeSDS, laptops_price_mean + threeSDS)
@@ -178,50 +199,6 @@ head(df_clean)
 
 ```
 
-
-
-# Aufgabe 5: Visualisierung des Tradeoffs [3 Punkte]
-Wir wissen, dass der Bias-Varianz-Kompromiss als Grundlage für die Behandlung von Problemen wie **Over- und under-Fitting** beim maschinellen Lernen dient.
-
-In dieser Übung untersuchen Sie unseren Wetterdatensatz ein letztes Mal, indem Sie den Unterschied zwischen Modellen mit hohem Bias und hoher Varianz anhand der bereits importierten Variablen visualisieren.
-
-Zur Erinnerung: Wir verwenden die `Temp9am`-Feature, um unsere abhängige Variable, das `Temp3pm`-Feature, vorherzusagen. 
-
-## Anweisungen
-- Visualisieren Sie die Beziehung zwischen den Variablen mit einem Scatterplot
-- Visualisieren Sie die Vorhersagen `pred`
-- Visualisieren Sie die Vorhersagen 
-
-```{r}
-X <- c(8.6, 14.2, 15.1, 17.5, 16.2,  5.8, 20.3,  2.5, 15.4, 22.2, 30.4,
-       11. , 21.7, 25.5, 13.4, 25.2, 10.6, 26.7, 20.5)
-y <- c(8.6, 14.2, 15.1, 17.5, 16.2,  5.8, 20.3,  2.5, 15.4, 22.2, 30.4,
-       11. , 21.7, 25.5, 13.4, 25.2, 10.6, 26.7, 20.5)
-preds <- c(8.6, 14.2, 15.1, 17.5, 16.2,  5.8, 20.3,  2.5, 15.4, 22.2, 30.4,
-       11. , 21.7, 25.5, 13.4, 25.2, 10.6, 26.7, 20.5)
-preds2 <- c(15.53525198, 15.53535007, 15.55148727, 15.72947367, 15.82907881,
-       17.73831971, 19.20364488, 21.48164064, 22.37381012, 24.95533779,
-       28.91800569, 28.68313159, 28.23278614, 26.59000134, 27.16358784,
-       31.52912842, 28.1403767 , 22.11067348, 29.29891384)
-
-linear_model_2 <- lm(X~y)
-
-# Use X and y to create a scatterplot
-p1 <- ggplot(data = linear_model_2, mapping = aes(x=X, y=y)) + geom_point()
-
-# Add your model predictions to the scatter plot with preds (line plot)
-p2 <- ggplot(data = linear_model_2, mapping = aes(x=X, y=preds)) + geom_line()
-
-# Add the higher-complexity model predictions as well
-p3 <- ggplot(data = linear_model_2, mapping = aes(x=X, y=preds2)) + geom_line()
-
-
-mp <- multiplot(p1, p2, p3, cols = 2)
-```
-
-
-
-
 # Aufgabe 6 [26 Punkte]
 Für diese Aufgabe werden wir den Luftqualitätsdatensatz `airquality` verwenden, der ein Standarddatensatz in R ist.
 
@@ -229,14 +206,32 @@ Für diese Aufgabe werden wir den Luftqualitätsdatensatz `airquality` verwenden
 Dieser Datensatz enthält einige fehlende Daten. Der Einfachheit halber werden wir sie entfernen. Denken Sie darüber nach, warum dies eine vernünftige Sache sein kann oder auch nicht. (Wir werden später auf diese Idee zurückkommen. Für den Moment wollen wir uns auf die Modellierung konzentrieren)
 
 ```{r}
-
 data <- airquality
-head(data)
+data_length <- nrow(data)
+data_length
 
 # see how many rows with NA values we have
 # depending on how many there are, replace the values or delete them
+summary(data)
+# Insgesamt gibt es 44 Zeilen (Ozone 37 & Solar.R 7) mit fehlenden Werten. Wenn wir alle Werte einfach entfernen würden, würde ein Großteil der Daten verloren gehen. Deshalb müssen wir die Daten ersetzen. 
 
-airquality_cleaned = NULL
+# Die Spalten Monat und Tag falsch formatiert
+typeof(data$Day)
+typeof(data$Month)
+
+# Tag sollte kein Integer sein, sondern ein Faktor zwischen 1 und 31 (min und max der Spalte)
+data$Day <- factor(data$Day, levels=c(1:31), ordered=TRUE)
+
+# Monat sollte ebenfalls kein Integer sein, sondern ein Faktor zwischen 5 und 9
+data$Month <- factor(data$Month, levels=5:9, labels=month.abb[5:9], ordered=TRUE)
+
+# Die NA-Werte von Ozon und Solar.R werden mit dem Median der jeweiligen Spalten ersetzt um die Werte nicht zu sehr zu verfälschen
+ozone_median <- data$Ozone %>% na.omit() %>% median()
+solar_r_median <- data$Solar.R %>% na.omit() %>% median()
+
+airquality_cleaned <- data %>% mutate(Ozone = replace(Ozone, is.na(Ozone), ozone_median))
+airquality_cleaned <- airquality_cleaned %>% mutate(Solar.R = replace(Solar.R, is.na(Solar.R), solar_r_median))
+head(airquality_cleaned)
 ```
 
 ## 6.2 Test-Train Split [2 Punkte]
@@ -244,11 +239,27 @@ Jetzt wollen wir einen Testzug mit der Aufteilung der Daten durchführen. Das he
 
 ```{r}
 set.seed(1910837830) # Your id
-trn_data <- NULL # 70% 
-tst_data <- NULL # 30%
-nobs_tst <- NULL # number of observations in test
+data <- airquality_cleaned
+
+# Wie groß ist die Stichprobe bei 70% ?
+sample_size = round(nrow(data) * .70)
+# Kreiert einen Vector mit zufälligen Zeilenummern 
+index <- sample(seq_len(nrow(data)), size = sample_size)
+
+# Neues df mit den Zeilenummern aus dem Index
+trn_data <- data[index, ] # 70% 
+# Neues df mit allen Zeilen, welche nicht im Index sind
+tst_data <- data[-index, ] # 30%
+
+# Test ob alles korrekt ist
+nobs_trn <- nrow(trn_data)
+nobs_tst <- nrow(tst_data)
+nobs_trn
+nobs_tst
+nobs_trn + nobs_tst == nrow(data)
 ```
 Wie viele Beobachtungen werden in der Testmenge verwendet?
+46 Beobachtungen in der Testmenge, 107 im Trainings-Set
 
 
 ## 6.3 EDA [4 Punkte]
@@ -264,15 +275,25 @@ Wir haben bereits begonnen, mit diesen Daten zu arbeiten, aber wir sollten wirkl
 - Stellen Sie die Daten dar (Plots).
 
 **Beantworten Sie die ersten beiden Fragen!**
+1)
+Die Daten sind tägliche Messungen der Luftqualität in New York von Mai bis September 1973. Sie wurden vom New York State Department of Conservation (Ozondaten) und vom National Weather Service (meteorologische Daten) bezogen.
+Das df hat 153 Beobachtungen und sechs Variablen:
+1:	Ozone	
+2:	Solar.R	
+3:	Wind	
+4:	Temp	
+5:	Month	
+6:	Day	
+
+2)
+Im originalen Datensatz sind alle Spalten numerisch. Bei den ersten vier Variablen ist dies in Ordnung, doch die Tage und Monate sollten als Faktoren formatiert sein, da ansonsten keine korrekte Analyse des Datensatzes möglich ist (bspw. würde Dezember "besser" bewertet werden als der Januar, da 12 > 01) 
+
+**----**
 
 Erstellen Sie ein Diagramm, das alle möglichen Streudiagramme von zwei Variablen im Trainingsdatensatz zeigt.
 
 ```{r}
-# plot here
-
-# anschauen mit view Befehl in R
-# montas-variablen nicht in nummern -> dezember ist 12 mal mehr wert als Januar 1
-
+ggpairs(trn_data, columns=1:4, progress = F) + ggtitle("Airquality Dataset")
 ```
 
 
@@ -280,8 +301,7 @@ Erstellen Sie ein Diagramm, das alle möglichen Streudiagramme von zwei Variable
 Da wir uns auf die Vorhersage von `Ozone` mit Hilfe von `Temp` konzentrieren werden, erstellen Sie eine Streudiagramm, das nur diese Beziehung anhand der Trainingsdaten zeigt
 
 ```{r}
-# plot
-# pair plot
+ggpairs(trn_data, columns=c("Ozone","Temp"), progress = F) + ggtitle("Airquality Dataset - Ozone & Temp")
 ```
 
 
@@ -291,19 +311,30 @@ Passen Sie insgesamt fünf Polynommodelle an die Trainingsdaten an, die zur Vorh
 
 ```{r}
 # Lineares Model (Polynom grad 1)
-mod_1 <- NULL
+y <- trn_data$Ozone
+x <- trn_data$Temp
+
+ggplot() + geom_point(aes(x=x, y=y)) + geom_line(aes(x=x, y=predict(mod_1)), color="green") + xlab("Temp") + ylab("Ozone")
+
+
 # Interpretation des Outputs von R von Modell 1 (möglichst vollständig/relevant, Koeffizient(en),...)
 
-# polynommodell von grad 1 ist eine gerade (lineare regression)
-# nur eines interpretieren
 
 ```
 
 ```{r}
-mod_2 <- NULL
-#... (ggf. tidy)
+month <- trn_data$Month
+mod_2 <- lm(y ~ poly(x, 2))
+mod_3 <- lm(y ~ poly(x, 3))
+mod_4 <- lm(y ~ poly(x, 4))
+mod_5 <- lm(y ~ poly(x, 5))
 
-# alle 5 modelle bis mod_5
+ggplot() + geom_point(aes(x=x, y=y, colour = factor(month))) + xlab("Temp") + ylab("Ozone") + 
+  geom_line(aes(x=x, y=predict(mod_2)), color="green") +
+  geom_line(aes(x=x, y=predict(mod_3)), color="orange") +
+  geom_line(aes(x=x, y=predict(mod_4)), color="blue") +
+  geom_line(aes(x=x, y=predict(mod_5)), color="red") 
+
 ```
 
 
@@ -311,13 +342,20 @@ mod_2 <- NULL
 Vorhersage von Ozon für eine Temperatur von 89 Grad Fahrenheit unter Verwendung des Polynommodells mit drei Graden.
 
 ```{r}
-# code
-predict_degree_3_89 <- NULL
+month <- trn_data$Month
+mod_3 <- lm(y ~ poly(x, 3))
+
+ggplot() + geom_point(aes(x=x, y=y, colour = factor(month))) + xlab("Temp") + ylab("Ozone") + 
+  geom_line(aes(x=x, y=predict(mod_3)), color="orange")
+
+
+predict_degree_3_89 <- predict(mod_3, data.frame(x = 89))
+predict_degree_3_89
 ```
 
 ```{r, eval=F}
-predict_degree_3_89.sol <- predict(mod_3, data.frame(Temp = 89)) #74.40082
-
+predict_degree_3_89.sol <- predict(mod_3, data.frame(x = 89)) #74.40082
+predict_degree_3_89.sol
 ```
 
 
@@ -348,12 +386,24 @@ mod_knn <- NULL
 Berechnen Sie sowohl den Trainings- als auch den Test-RMSE für die obigen Modelle unter Verwendung der von Ihnen gespeicherten Vorhersagen
 
 ```{r}
+# 10 rmse -> copy paste
+
 rmse_trn_1 <- NULL
 rmse_tst_1 <- NULL
 
-# skalierung der modelle ist wichtig (dollar vs. 1000 irgendwas)
+rmse_trn_2 <- NULL
+rmse_tst_2 <- NULL
 
-#...
+rmse_trn_3 <- NULL
+rmse_tst_3 <- NULL
+
+rmse_trn_4 <- NULL
+rmse_tst_4 <- NULL
+
+rmse_trn_5 <- NULL
+rmse_tst_5 <- NULL
+
+# skalierung der modelle ist wichtig (dollar vs. 1000 irgendwas)
 ```
 
 
@@ -389,6 +439,7 @@ Bisher haben wir nur einen der verfügbaren Prädiktoren verwendet. Warum nicht 
 
 ```{r}
 # your code
+# RMSE von 18
 ```
 
 ```{r, eval=F}
@@ -404,10 +455,12 @@ calc_rmse(actual = tst_data$Ozone,
 # optional
 - Wie kann man die "ideale" Anzahl von Prädiktoren finden?
 - Welche müssen als "Faktor" behandelt werden? Welche sind sinnvoll? Dummy-Coding
+# Im Noramfall berechnet R die benätigten Daten als "Faktor"
 - Welche Prädiktoren sind Korreliert? Wenn ja, welche? Wenn nein, warum (Plot)? # ggpairs
 - Gibt es Confounder? Wenn ja, welche? Wenn nein, warum (Plot)? # immer plot dazu
 - Gibt es Interaktionen, die Modelliert werden sollten? Wenn ja, welche? Wenn nein, warum (Plot)? # immer plot dazu
 - Gibt es Outlier, Heteroskedastizität, Nicht-Normalverteilung?
+# Es ist Heterodesktast, aber es ist nicht so extrem wie es aussieht. 
 
 
 

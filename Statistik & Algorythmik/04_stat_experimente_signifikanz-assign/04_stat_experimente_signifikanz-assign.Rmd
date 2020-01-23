@@ -104,16 +104,23 @@ In dieser Übung arbeiten Sie mit einer Website und möchten auf einen Unterschi
 
 ```{r}
 library(pwr)
-h <- ES.h(p1 = 0.20, p2 = 0.25)
+p1 <- 0.02
+p2 <- 0.03
+
+
+h <- ES.h(p1, p2)
 h
+
+h2 <- 2*asin(sqrt(p1))-2*asin(sqrt(p2))
+h2
 
 t1 <- pwr.2p.test(h, sig.level = 0.05, power = 0.95)
 round(t1$n)
-# Der Test muss 753 mal durchgeführt werden um mit 95 % Wahrscheinlichkeit und bei einem Signifikanzlevel von 0,05 sagen zu können, dass die Änderung zur gewünschten Verbesserung der Konversionsrate geführt hat. 
+# Der Test muss 1808 mal durchgeführt werden um mit 95 % Wahrscheinlichkeit und bei einem Signifikanzlevel von 0,05 sagen zu können, dass die Änderung zur gewünschten Verbesserung der Konversionsrate geführt hat. 
 
 t2 <- pwr.2p.test(h, sig.level = 0.05, power = 0.80)
 round(t2$n)
-# Da wir die Power (also die Wahrscheinlichkeit, dass die Änderung wirklich den gewünschten Effekt bringt) von 95 % auf 80 % reduziert haben, benötigen wir nur noch 430 Versuche. Allerdings erhöht dies auch die Wahrscheinlichkeit eines flasch-positiven Ergebnisses. 
+# Da wir die Power (also die Wahrscheinlichkeit, dass die Änderung wirklich den gewünschten Effekt bringt) von 95 % auf 80 % reduziert haben, benötigen wir nur noch 1092 Versuche.
 
 ```
 

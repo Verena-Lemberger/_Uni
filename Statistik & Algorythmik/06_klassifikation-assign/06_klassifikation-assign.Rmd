@@ -1,0 +1,231 @@
+---
+title: "Klassifikation"
+subtitle: "Algorithmik und Statistik 1"
+author: "Lukas Huber"
+institute: "FH Kufstein"
+date: "2019-01-01 (updated: `r Sys.Date()`)"
+---
+
+Bitte um Beachtung der [Übungs-Policy](https://weblearn.fh-kufstein.ac.at/mod/page/view.php?id=64482) für genaue Anweisungen und einige Beurteilungsnotizen. Fehler bei der Einhaltung ergeben Punktabzug.
+
+```{r setup}
+library(statistics4ds)
+library(tidyverse)
+```
+
+
+# Aufgabe 1: Krebserkennung mit KNN [3 Punkte]
+
+Für diese Übung werden wir Daten aus [`wisc-trn.csv`](wisc-trn.csv) und [`wisc-tst.csv`](wisc-tst.csv) verwenden, die jeweils Zug- und Testdaten enthalten. Dies ist eine Modifikation des Brustkrebs-Wisconsin-(Diagnose-)Datensatzes aus dem UCI Machine Learning Repository. Es wurden nur die ersten 10 Merkmalsvariablen bereitgestellt.
+
+- [UCI](https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic))
+- [Data Detail](https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.names)
+
+Sie sollten erwägen, die Antwort als Faktorvariable zu erzwingen. 
+
+Betrachten Sie zwei verschiedene Vorverarbeitungs-Setups:
+
+- **Setup 1**
+    - Numerische Variablen nicht skaliert. 
+- **Setup 2**
+    - Numerische Variablen werden auf den Mittelwert 0 und die Standardabweichung 1 skaliert.
+
+Für jeden Aufbau sind KNN-Modelle mit Werten von `k` von `1` bis `200` zu trainieren. Dabei werden nur die Variablen `Radius`, `Symmetrie` und `Textur` verwendet. Berechnen Sie für jede dieser Größen den Klassifizierungsfehler der Prüfung. Diese Ergebnisse sind in einer einzigen Darstellung zusammenzufassen, die den Prüffehler als Funktion von `k` darstellt. (Die Darstellung hat zwei "Kurven", eine für jeden Aufbau.) Ihre Darstellung sollte visuell ansprechend und gut beschriftet sein und eine Legende enthalten.
+
+```{r}
+# data types erkennen
+data <- read_csv("data/wisc-tst.csv")
+heads(data)
+
+```
+
+
+# Aufgabe 2: Krebserkennung mit logistischer Regression [4 Punkte]
+
+Wir verwenden den Datensatz und Split von Aufgabe 1.
+
+Betrachten Sie eine additive logistische Regression, die *nur zwei Prädiktoren*, `Radius` und `Symmetrie`, berücksichtigt. Benutzen Sie dieses Modell zur Schätzung 
+
+$$
+p(x) = P(Y = \texttt{M} \mid X = x).
+$$
+
+Berichten Sie die Testsensitivität, Testspezifität und Testgenauigkeit für drei Klassifikatoren, wobei jeder einen anderen Grenzwert für die vorhergesagte Wahrscheinlichkeit verwendet:
+
+$$
+\hat{C}(x) =
+\begin{cases} 
+      M & \hat{p}(x) > c \\
+      B & \hat{p}(x) \leq c
+\end{cases}
+$$
+
+- $c = 0.1$
+- $c = 0.5$
+- $c = 0.9$
+
+Wir werden `M` (maligne) als die "positive" Klasse betrachten, wenn wir die Sensitivität und Spezifität berechnen. Fassen Sie diese Ergebnisse in einer einzigen gut formatierten Tabelle zusammen.
+
+```{r}
+# kein hold out ?
+# wir haben einen CUtoff -> wie wahrscheinlich muss er sein, dass er bösartig ist? 0,5 ist der Standard
+```
+
+
+# Aufgabe 3: Wetter Logistische Regression [4 Punkte]
+Kommen wir zur logistischen Regression. Sie werden wieder mit dem gleichen Wetterdatensatz arbeiten, aber das Ziel ist es, vorherzusagen, ob es morgen regnen wird. Wir haben Ihre Train- und Testsets für Sie erstellt. Ihre abhängigen Variablen sind die Features Humidity9am und Humidity3pm
+
+Achtung die Daten sind nicht normalisiert, skalieren Sie diese gegebenfalls und geben Sie die Auswirkung der Normalisierung an.
+
+## Anweisungen
+- Erstellen und fitten Sie das logistic_model mit train
+- Geben Sie die Genauigkeit Ihres Modells auf den Testdaten an.
+- Betrachten Sie die Modell-Koeffizienten, was können Sie daraus schließen?
+
+```{r}
+library(caret)
+set.seed(3456)
+data(weatherAUS)
+weatherAUS_n <- weatherAUS[sample(nrow(weatherAUS), 1000),]
+trainIndex <- createDataPartition(weatherAUS_n$RainTomorrow, p = .75, 
+                                  list = FALSE, 
+                                  times = 1)
+
+# wir brauchen später noch mehr prediktoren
+train <- weatherAUS_n[ trainIndex, ]# %>% select(RainTomorrow, Humidity9am, Humidity3pm) %>% na.omit()
+test  <- weatherAUS_n[-trainIndex, ] # %>% select(RainTomorrow, Humidity9am, Humidity3pm) %>% na.omit()
+
+# Create and fit your model
+logistic_model <- NULL
+# Compute and print the accuracy
+
+# Assign and print the coefficents
+```
+
+
+
+
+# Aufgabe 4: Wetter Klassifikation Evaluation [4 Punkte]
+In Fortführung der Evaluierungsmetriken werden Sie diesmal unser logistisches Regressionsmodell von früher evaluieren, mit dem Ziel, die binäre RainTomorrow-Feature mit Hilfe von 'Humidity'+"weiteren" vorherzusagen.
+
+Wir haben das Modell als `logistic_model` vorher definiert. Generieren und analysieren Sie die Confusionmatrix und berechnen Sie dann Präzision und Recall, bevor Sie eine Schlussfolgerung ziehen.
+
+## Anweisungen
+- Generieren und drucken Sie die Confusionmatrix für Ihr Modell; identifizieren Sie die Fehler Typ I und Typ II für die Testdaten.
+- Berechnen und geben Sie die Genauigkeit Ihres Models aus; können Sie erklären, warum Präzision in diesem Zusammenhang hilfreich ist?
+
+
+```{r}
+#logistic_model
+# Generate and output the confusion matrix
+
+# Compute and print the precision
+
+# Compute and print the recall
+```
+
+
+
+
+
+# Aufgabe 5 Wetter Klassifikatoren vergleichen [5 Punkte]
+
+Verwenden Sie die Daten in `weatherAUS`, nun mit allen Variablen, die Train- bzw. Testdaten enthalten (von vorher). Als Antwort ist `RainTomorrow` zu verwenden. Nach dem Import der Daten `RainTomorrow` als Faktor erzwingen, falls dies nicht bereits der Fall ist.
+
+Erstellen Sie ein Pair-Plot für die Trainingsdaten und trainieren Sie dann die folgenden Modelle unter Verwendung der beiden verfügbaren Prädiktoren:
+
+- 5 verschiedene Additive logistische Regression (Multinomiale Regression)
+  - **Intercept**: $\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0$
+  - **Simple**: $\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 \texttt{x}$
+- **Multiple**:$\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2  + \beta_3 x_3$
+- **Additive**: Ein *additives* Modell mit (fast) allen ~5-10 verfügbaren Prädiktoren (Achtung: viele NAs, Faktoren z.B. Location)
+- **Interaction**: Ein *Interaktions* Modell, das alle Begriffe erster Ordnung (von Additive) und alle möglichen Wechselwirkungen in beide Richtungen enthält
+- LDA (mit aus Daten geschätzten Prioren)
+- LDA mit Flachprior
+- Naive Bayes (mit geschätzten Prioren aus den Daten)
+
+Berechnen Sie Test- und Trainfehlerraten für jedes Modell. Fassen Sie diese Ergebnisse in einer einzigen gut formatierten Tabelle zusammen.
+
+Interpretieren/visualisieren Sie die Modelle
+
+```{r}
+# pair plot
+mod_intercept <- NULL
+mod_simple <- NULL
+mod_multiple <- NULL
+mod_additive <- NULL # careful on this one!
+mod_interaction <- NULL
+```
+
+# Optional: Aufgabe 6 Bias-Variance Tradeoff, Logistic Regression [X Punkte] -> optional
+
+Führen Sie eine Simulationsstudie durch, um den Bias, die Varianz und den mittleren quadratischen Fehler der Schätzung von $p(x)$ mittels logistischer Regression zu schätzen. Erinnere dich daran, dass
+$p(x) = P(Y = 1 | X = x)$.
+
+Betrachten Sie das (wahre) logistische Regressionsmodell
+
+$$
+\log \left( \frac{p(x)}{1 - p(x)} \right) = 1 + 2 x_1  - x_2
+$$
+
+Um den vollständigen Datenerzeugungsprozess zu spezifizieren, betrachten Sie die folgende "R"-Funktion.
+
+```{r}
+make_sim_data = function(n_obs = 100) {
+  x1 = runif(n = n_obs, min = 0, max = 2)
+  x2 = runif(n = n_obs, min = 0, max = 4)
+  prob = exp(1 + 2 * x1 - 1 * x2) / (1 + exp(1 + 2 * x1 - 1 * x2))
+  y = rbinom(n = n_obs, size = 1, prob = prob)
+  data.frame(y, x1, x2)
+}
+```
+
+Im Folgenden wird also ein simulierter Datensatz gemäß dem oben definierten Datenerzeugungsprozess erzeugt.
+
+```{r}
+sim_data = make_sim_data()
+```
+
+Bewerten Sie Schätzungen von $p(x_1 = 0,5, x_2 = 0,75)$ aus vier passenden Modellen:
+
+$$
+\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0
+$$
+
+$$
+\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2
+$$
+
+$$
+\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2  + \beta_3 x_1x_2
+$$
+
+$$
+\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2 + \beta_3 x_1^2 + \beta_4 x_2^2 + \beta_5 x_1x_2
+$$
+
+Verwenden Sie `2000` Simulationen von Datensätzen mit einer Stichprobengröße von `30`, um den quadratischen Bias, die Varianz und den mittleren quadratischen Fehler der Schätzung von $p(x_1 = 0.5, x_2 = 0.75)$ unter Verwendung von $\hat{p}(x_1 = 0.5, x_2 = 0.75)$ für jedes Modell zu schätzen. Berichten Sie Ihre Ergebnisse in einer gut formatierten Tabelle.
+
+
+
+```{r}
+set.seed(123456789)
+```
+
+# Aufgabe 7 Konzeptprüfung [6 Punkte]
+
+Beantworten Sie die folgenden Fragen auf der Grundlage Ihrer Ergebnisse aus den Aufgaben **[je 1 Punkt]**.
+
+**(a)** In Aufgabe 5, warum schneidet Naive Bayes schlecht ab?
+
+**(b)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle schneidet am besten ab?
+
+**(c)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle könnte Ihrer Meinung nach zu wenig geeignet sein?
+
+**(d)** Welches dieser Modelle könnte Ihrer Meinung nach aufgrund Ihrer Ergebnisse in Aufgabe 5 überdimensioniert sein?
+
+**(e)** Welche der Klassifikatoren aus Aufgaben 1+2 bevorzugen Sie?
+
+**(f)** Nennen Sie die Metrik, die Sie für Ihre Entscheidung verwendet haben, teilweise **(e)**, und einen Grund für die Verwendung dieser Metrik.
+  
+  
