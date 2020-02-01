@@ -173,7 +173,7 @@ Achtung die Daten sind nicht normalisiert, skalieren Sie diese gegebenfalls und 
 - Betrachten Sie die Modell-Koeffizienten, was können Sie daraus schließen?
 
 ```{r}
-set.seed(3456)
+set.seed(1910837830)
 
 data_clean <- weatherAUS %>% na.omit()
 df <- data.frame(RainTomorrow = data_clean$RainTomorrow, Humidity9am = data_clean$Humidity9am, Humidity3pm = data_clean$Humidity3pm) 
@@ -251,6 +251,21 @@ Berechnen Sie Test- und Trainfehlerraten für jedes Modell. Fassen Sie diese Erg
 Interpretieren/visualisieren Sie die Modelle
 
 ```{r}
+set.seed(1910837830)
+
+data_clean <- weatherAUS %>% na.omit()
+data_clean$RainTomorrow <- as.factor(data_clean$RainTomorrow)
+
+
+weatherAUS_n <- data_clean[sample(nrow(data_clean), 1000),]
+trainIndex <- createDataPartition(df$RainTomorrow, p = .75,  list = FALSE,  times = 1)
+
+train <- data_clean[ trainIndex, ] 
+test  <- data_clean[-trainIndex, ] 
+
+y <- train$RainTomorrow
+
+
 # pair plot
 mod_intercept <- NULL
 mod_simple <- NULL
@@ -265,14 +280,21 @@ Beantworten Sie die folgenden Fragen auf der Grundlage Ihrer Ergebnisse aus den 
 
 **(a)** In Aufgabe 5, warum schneidet Naive Bayes schlecht ab?
 
+
 **(b)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle schneidet am besten ab?
+Das Modell mit cut_50
+
 
 **(c)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle könnte Ihrer Meinung nach zu wenig geeignet sein?
+Das Modell mit cut_90 -> overfitting
+
 
 **(d)** Welches dieser Modelle könnte Ihrer Meinung nach aufgrund Ihrer Ergebnisse in Aufgabe 5 überdimensioniert sein?
 
+
 **(e)** Welche der Klassifikatoren aus Aufgaben 1+2 bevorzugen Sie?
+Das Modell mit cut_50
 
 **(f)** Nennen Sie die Metrik, die Sie für Ihre Entscheidung verwendet haben, teilweise **(e)**, und einen Grund für die Verwendung dieser Metrik.
-  
+Accuracy
   
