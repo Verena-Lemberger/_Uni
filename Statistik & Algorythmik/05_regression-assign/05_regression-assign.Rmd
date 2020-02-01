@@ -1,10 +1,26 @@
 ---
 title: "Regression und Prädiktion"
-subtitle: "Algorithmik und Statistik 1"
 author: "Sascha Metzger - 1910837830"
-institute: "FH Kufstein"
-date: "2019-01-01 (updated: `r Sys.Date()`)"
+date: '2019-01-01 (updated: `r Sys.Date()`)'
+output:
+  html_document:
+    df_print: paged
+subtitle: Algorithmik und Statistik 1
+institute: FH Kufstein
 ---
+
+
+```{r setup}
+library(FNN)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+library(ggplot2)
+library(GGally)
+library(Rmisc)
+library(broom)
+library(FNN)
+```
 
 ```{r}
 # https://stackoverflow.com/questions/5577221/how-can-i-load-an-object-into-a-variable-name-that-i-specify-from-an-r-data-file
@@ -13,16 +29,15 @@ loadRData <- function(fileName){
     load(fileName)
     get(ls()[ls() != "fileName"])
 }
-```
 
-```{r setup}
-library(tidyverse)
-library(ggplot2)
-library(GGally)
-library(Rmisc)
+calc_rmse = function(actual, predicted) {
+  sqrt(mean((actual - predicted) ^ 2))
+}
+
 laptops_unclean <- loadRData("data/laptops_unclean.RData")
 weatherAUS <- read.csv("data/weatherAUS.csv")
 ```
+
 
 # Aufgabe 1: Lineare Regression [5 Punkte]
 In dieser Übung implementieren Sie ein einfaches lineares Regressionsmodell. Machen Sie sich bereit für Vorhersagen, visualisieren Sie die Modellanpassung und analysieren Sie die Formel, mit der Sie Ihre Anpassung generieren.
@@ -38,25 +53,28 @@ Mittlerweile sind Sie wahrscheinlich mit dem Wetterdatensatz, den wir verwenden 
 ```{r}
 data_clean <- weatherAUS %>% select(Humidity9am, Humidity3pm) %>% na.omit()
 
-x <- data_clean$Humidity3pm # FYI X
-y <- data_clean$Humidity9am # Y
+x <- data_clean$Humidity3pm 
+y <- data_clean$Humidity9am
 
 # Create and fit your linear regression model
 linear_model <- lm(x~y)
-linear_model
+summary(linear_model)
 
 # Assign and print predictions
 preds <- predict(linear_model)
 head(preds)
 
-# Plot your fit to visualize your model
-ggplot(data = linear_model, mapping = aes(x=x, y=y)) + geom_point()
+plot(x, y, xlab = "Humidity3pm", ylab = "Humidity9am", pch = 19, frame = FALSE)
+abline(linear_model, col = "green")
 
 # Assign and print coefficient 
 coef_lm <- cor.test(x,y,method="pearson")
 coef_lm
 
-# Humidity3pm und Humidity9am korrelieren moderat miteinander. Im Plot können wir ebenso eine Heteroskedastizität erkennen, weil mit zunehmender Luftfeuchtigkeit (3pm) gehen die Werte y-Werte immer stärker auseinander. Dies bedeutet, dass die Vorhersagekraft von y, ausgehend von x, geringer wird, je größer der Wert von x ist. Allerdings ist die Heteroskedastizität nicht extrem groß.
+sd(x)
+sd(y)
+
+# Humidity3pm und Humidity9am korrelieren moderat miteinander (r = 0.6673878). Im Plot können wir ebenso eine Heteroskedastizität erkennen, weil mit zunehmender Luftfeuchtigkeit (3pm) gehen die Werte y-Werte immer stärker auseinander. Dies bedeutet, dass die Vorhersagekraft von y, ausgehend von x, geringer wird, je größer der Wert von x ist. Allerdings ist die Heteroskedastizität nicht extrem groß.
 
 ```
 
@@ -75,12 +93,15 @@ Kommen wir zur Berechnung der R-Quadrat-, mittleren quadratischen Fehler- und mi
 - Interpretieren Sie die Regression
 
 ```{r}
+x <- data_clean$Humidity3pm 
+y <- data_clean$Humidity9am
+preds <- predict(linear_model)
+
 # R-squared score
-# https://de.wikipedia.org/wiki/Bestimmtheitsma%C3%9F#Als_quadrierter_Korrelationskoeffizient
-r2 <- coef_lm$estimate ^ 2 # cbr() ° 2
+r2 <- coef_lm$estimate^2
 r2
-# Wir können den Koeffizienten nehmen, weil wir eine linçceare Regression haben (deshalb können wir auch den Pearson-Koeffizient verwenden). 
-# Je geringer die Abweichung der Residuen zum Modell ist, desto näher ist der Wert von R2 an 1 ist.R2 gibt an wie gut die unabhängige(n) Variable(n) die abhängige Variable prognoszitieren können.
+# Wir können den Koeffizienten nehmen, weil wir eine lineare Regression haben (deshalb können wir auch den Pearson-Koeffizient verwenden).
+# Je geringer die Abweichung der Residuen zum Modell ist, desto näher ist der Wert von R2 an 1 ist. R2 gibt an wie gut die unabhängige(n) Variable(n) die abhängige Variable prognoszitieren können.
 
 # get the mean of y
 meanY <- mean(y)
@@ -90,14 +111,21 @@ meanY
 error <- y - preds
 
 # Mean squared error
-rsme = sqrt(mean(error^2))
+sme <- mean(error^2)
+sme
+# Der mittlere quadratische Fehler (MSE) misst die durchschnittliche quadratische Differenz zwischen den geschätzten Werten und dem tatsächlichen Wert. In unserem Fall ist es 328.8872. Der MSE bewertet wie gut ein Prädiktor ist.
+
+# Root Mean squared error
+rsme <- sqrt(sme)
 rsme
-# Der RMSE ist 18.13525 und besagt aus, dass im Durchschnitt unser Fehler zwischen tatsächlicher Beobachtung und Prediction sich um 18 Punkte voneinander unterscheiden. Der durchschnittliche Wert der tatsächlichen Werte ist 68.79409, ein Fehler von 18 ist demnach sehr hoch. Wir können deshalb davon ausgehen, dass unser Modell keine besonders guten vorhersagen liefert.  
 
 # Mean absolute error
-mae = mean(abs(error))
+mae <- mean(abs(error))
 mae
-# Der durchschnittliche Absolute Fehler ist der durchschnittliche Betrag aller Fehler. Ebenso wie der RMSE kann er Auskunf über die Genauigkeit unseres Modells geben. Der MAE ist in unserem Fall 17.36871 und ebenso wie der RMSE hoch, was auf eine hohe Fehlerquote unseres Modells rückfolgern lässt. 
+
+# Der durchschnittliche Absolute Fehler ist der durchschnittliche Betrag aller Fehler. Ebenso wie der RMSE kann er Auskunf über die Genauigkeit unseres Modells geben. Der MAE ist in unserem Fall 17.36871.
+
+# Der RMSE in unserem Modell liegt bei 18.13525, der MAE Erwartungsgemäß knapp darunter bei 17.36871. Dies deutet darauf hin, dass, ausgehend von unserem Mean von 68.79, unsere Prädiktion nur mittelmäßig ist. 
 ```
 
 
@@ -120,7 +148,7 @@ length_unclean
 # Identify and print the the rows with null values 
 ## create a new df from all the rows with NA in the Price_euros column
 missing_data <- laptops_unclean[ !(laptops_unclean$Price_euros), ]
-missing_data_length <- clean_test$Price_euros %>% length()
+missing_data_length <- missing_data$Price_euros %>% length()
 clean_data_length <- length_unclean - missing_data_length
 head(missing_data)
 missing_data_length
@@ -213,24 +241,28 @@ data_length
 # see how many rows with NA values we have
 # depending on how many there are, replace the values or delete them
 summary(data)
-# Insgesamt gibt es 44 Zeilen (Ozone 37 & Solar.R 7) mit fehlenden Werten. Wenn wir alle Werte einfach entfernen würden, würde ein Großteil der Daten verloren gehen. Deshalb müssen wir die Daten ersetzen. 
+# Insgesamt gibt es 44 Werte (Ozone 37 & Solar.R 7) mit fehlenden Werten. Wenn wir alle Werte einfach entfernen würden, würde ein Großteil der Daten verloren gehen. Deshalb müssen wir die Daten ersetzen. 
 
 # Die Spalten Monat und Tag falsch formatiert
 typeof(data$Day)
 typeof(data$Month)
 
+# Die NA-Werte von Ozon und Solar.R werden mit dem Median der jeweiligen Spalten ersetzt um die Werte nicht zu sehr zu verfälschen
+#ozone_median <- data$Ozone %>% na.omit() %>% median()
+#solar_r_median <- data$Solar.R %>% na.omit() %>% median()
+
+#airquality_cleaned <- data %>% mutate(Ozone = replace(Ozone, is.na(Ozone), ozone_median))
+#airquality_cleaned <- airquality_cleaned %>% mutate(Solar.R = replace(Solar.R, is.na(Solar.R), solar_r_median))
+
+airquality_cleaned <- na.omit(data)
+
+
 # Tag sollte kein Integer sein, sondern ein Faktor zwischen 1 und 31 (min und max der Spalte)
-data$Day <- factor(data$Day, levels=c(1:31), ordered=TRUE)
+# airquality_cleaned$Day <- factor(airquality_cleaned$Day, levels=c(1:31), ordered=TRUE)
 
 # Monat sollte ebenfalls kein Integer sein, sondern ein Faktor zwischen 5 und 9
-data$Month <- factor(data$Month, levels=5:9, labels=month.abb[5:9], ordered=TRUE)
+# airquality_cleaned$Month <- factor(airquality_cleaned$Month, levels=5:9, labels=month.abb[5:9], ordered=TRUE)
 
-# Die NA-Werte von Ozon und Solar.R werden mit dem Median der jeweiligen Spalten ersetzt um die Werte nicht zu sehr zu verfälschen
-ozone_median <- data$Ozone %>% na.omit() %>% median()
-solar_r_median <- data$Solar.R %>% na.omit() %>% median()
-
-airquality_cleaned <- data %>% mutate(Ozone = replace(Ozone, is.na(Ozone), ozone_median))
-airquality_cleaned <- airquality_cleaned %>% mutate(Solar.R = replace(Solar.R, is.na(Solar.R), solar_r_median))
 head(airquality_cleaned)
 ```
 
@@ -239,27 +271,23 @@ Jetzt wollen wir einen Testzug mit der Aufteilung der Daten durchführen. Das he
 
 ```{r}
 set.seed(1910837830) # Your id
-data <- airquality_cleaned
 
-# Wie groß ist die Stichprobe bei 70% ?
-sample_size = round(nrow(data) * .70)
 # Kreiert einen Vector mit zufälligen Zeilenummern 
-index <- sample(seq_len(nrow(data)), size = sample_size)
-
+index <- sample(nrow(airquality_cleaned), size = trunc(0.70 * nrow(airquality_cleaned)))
 # Neues df mit den Zeilenummern aus dem Index
-trn_data <- data[index, ] # 70% 
+trn_data <- airquality_cleaned[index, ] # 70% 
 # Neues df mit allen Zeilen, welche nicht im Index sind
-tst_data <- data[-index, ] # 30%
+tst_data <- airquality_cleaned[-index, ] # 30%
 
 # Test ob alles korrekt ist
 nobs_trn <- nrow(trn_data)
 nobs_tst <- nrow(tst_data)
 nobs_trn
 nobs_tst
-nobs_trn + nobs_tst == nrow(data)
+nobs_trn + nobs_tst == nrow(airquality_cleaned)
 ```
 Wie viele Beobachtungen werden in der Testmenge verwendet?
-46 Beobachtungen in der Testmenge, 107 im Trainings-Set
+34 Beobachtungen in der Testmenge, 77 im Trainings-Set
 
 
 ## 6.3 EDA [4 Punkte]
@@ -293,7 +321,7 @@ Im originalen Datensatz sind alle Spalten numerisch. Bei den ersten vier Variabl
 Erstellen Sie ein Diagramm, das alle möglichen Streudiagramme von zwei Variablen im Trainingsdatensatz zeigt.
 
 ```{r}
-ggpairs(trn_data, columns=1:4, progress = F) + ggtitle("Airquality Dataset")
+plot(trn_data)
 ```
 
 
@@ -301,7 +329,7 @@ ggpairs(trn_data, columns=1:4, progress = F) + ggtitle("Airquality Dataset")
 Da wir uns auf die Vorhersage von `Ozone` mit Hilfe von `Temp` konzentrieren werden, erstellen Sie eine Streudiagramm, das nur diese Beziehung anhand der Trainingsdaten zeigt
 
 ```{r}
-ggpairs(trn_data, columns=c("Ozone","Temp"), progress = F) + ggtitle("Airquality Dataset - Ozone & Temp")
+ggpairs(trn_data, columns=c("Temp", "Ozone"), progress = F) + ggtitle("Airquality Dataset - Ozone & Temp")
 ```
 
 
@@ -311,30 +339,44 @@ Passen Sie insgesamt fünf Polynommodelle an die Trainingsdaten an, die zur Vorh
 
 ```{r}
 # Lineares Model (Polynom grad 1)
-y <- trn_data$Ozone
-x <- trn_data$Temp
+month <- trn_data$Month
+mod_1 <- lm(Ozone ~ poly(Temp, 1), data = trn_data)
 
-ggplot() + geom_point(aes(x=x, y=y)) + geom_line(aes(x=x, y=predict(mod_1)), color="green") + xlab("Temp") + ylab("Ozone")
+df <- data.frame(Temp = trn_data$Temp, Ozone = trn_data$Ozone, mod_1 = mod_1$fitted.values)
+ggplot(df, aes(x=Temp, y=Ozone, colour = factor(month))) + geom_point() + xlab("Temp") + ylab("Ozone") + geom_line(df, mapping = aes(x=Temp, y=mod_1), color="green")
 
 
 # Interpretation des Outputs von R von Modell 1 (möglichst vollständig/relevant, Koeffizient(en),...)
+plot(mod_1$residuals)
+qqnorm(mod_1$residuals)
+qqline(mod_1$residuals)
 
+summary(mod_1)
+# correlation
+cor(y=mod_1$fitted.values, trn_data$Ozone, method = "pearson")
 
+# Der Residienplot weißt keine besonderen Auffälligkeiten in der Verteilung der Residuen auf. Dies deutet darauf hin, dass die gefitteten Werte und die Residuen unkorreliert sind.
+# Der QQ-Plot deutet auf eine Normalverteilung hin, auch wenn die Werte an den extremen weit von der Linie entfernt sind (Ausreißer / Messfehler).
+# Der Korrelationskoeffizient deutet auf eine moderate, postive Korrelation zwischen Ozon und Temperatur hin.
+# Der Residuen-Standard-Error liegt bei 24,19, r2 bei 0,4527, r bei 0,673. All diese Werte lassen vermuten, dass unser Modell nicht besonders gut performen wird. 
 ```
 
 ```{r}
-month <- trn_data$Month
-mod_2 <- lm(y ~ poly(x, 2))
-mod_3 <- lm(y ~ poly(x, 3))
-mod_4 <- lm(y ~ poly(x, 4))
-mod_5 <- lm(y ~ poly(x, 5))
+mod_2 <- lm(Ozone ~ poly(Temp, 2), data = trn_data)
+mod_3 <- lm(Ozone ~ poly(Temp, 3), data = trn_data)
+mod_4 <- lm(Ozone ~ poly(Temp, 4), data = trn_data)
+mod_5 <- lm(Ozone ~ poly(Temp, 5), data = trn_data)
 
-ggplot() + geom_point(aes(x=x, y=y, colour = factor(month))) + xlab("Temp") + ylab("Ozone") + 
-  geom_line(aes(x=x, y=predict(mod_2)), color="green") +
-  geom_line(aes(x=x, y=predict(mod_3)), color="orange") +
-  geom_line(aes(x=x, y=predict(mod_4)), color="blue") +
-  geom_line(aes(x=x, y=predict(mod_5)), color="red") 
+df$mod_2 = mod_2$fitted.values
+df$mod_3 = mod_3$fitted.values
+df$mod_4 = mod_4$fitted.values
+df$mod_5 = mod_5$fitted.values
 
+ggplot(df, aes(x=Temp, y=Ozone, colour = factor(month))) + geom_point() + xlab("Temp") + ylab("Ozone") +
+  geom_line(df, mapping = aes(x=Temp, y=mod_2), color="green") + 
+  geom_line(df, mapping = aes(x=Temp, y=mod_3), color="orange") + 
+  geom_line(df, mapping = aes(x=Temp, y=mod_4), color="blue") + 
+  geom_line(df, mapping = aes(x=Temp, y=mod_5), color="tomato") 
 ```
 
 
@@ -343,18 +385,12 @@ Vorhersage von Ozon für eine Temperatur von 89 Grad Fahrenheit unter Verwendung
 
 ```{r}
 month <- trn_data$Month
-mod_3 <- lm(y ~ poly(x, 3))
-
-ggplot() + geom_point(aes(x=x, y=y, colour = factor(month))) + xlab("Temp") + ylab("Ozone") + 
-  geom_line(aes(x=x, y=predict(mod_3)), color="orange")
-
-
-predict_degree_3_89 <- predict(mod_3, data.frame(x = 89))
+predict_degree_3_89 <- predict(mod_3, data.frame(Temp = 89))
 predict_degree_3_89
 ```
 
 ```{r, eval=F}
-predict_degree_3_89.sol <- predict(mod_3, data.frame(x = 89)) #74.40082
+predict_degree_3_89.sol <- predict(mod_3, data.frame(Temp = 89)) #74.40082
 predict_degree_3_89.sol
 ```
 
@@ -362,74 +398,169 @@ predict_degree_3_89.sol
 Prädiktieren Sie alle 5 Modelle für Train/Test-Daten
 
 ```{r}
+
 # Prediction
-one_pred_train <- NULL
-one_pred_tst <- NULL
-#... (verwendung ggf. von broom/tidy)
+one_pred_train <- predict(mod_1, newdata = trn_data)
+one_pred_tst <- predict(mod_1, newdata = tst_data)
+
+two_pred_train <- predict(object = mod_2, newdata = trn_data)
+two_pred_tst <- predict(object = mod_2, newdata = tst_data)
+
+three_pred_train <- predict(object = mod_3, newdata = trn_data)
+three_pred_tst <- predict(object = mod_3, newdata = tst_data)
+
+four_pred_train <- predict(object = mod_4, newdata = trn_data)
+four_pred_tst <- predict(object = mod_4, newdata = tst_data)
+
+five_pred_train <- predict(object = mod_5, newdata = trn_data)
+five_pred_tst <- predict(object = mod_5, newdata = tst_data)
 ```
 
 ## 6.5  KNN Modell [3 Punkte]
-Verwenden Sie KNN mit `k = 5`, um Vorhersagen für jede der Beobachtungen sowohl im Zug als auch in den Testdatensätzen zu treffen. Speichern Sie die Ergebnisse in Vektoren mit den Namen `knn_pred_trn` und `knn_pred_tst`.
+Verwenden Sie KNN mit `k = 5`, um Vorhersagen für jede der Beobachtungen sowohl im Train- als auch in den Testdatensätzen zu treffen. Speichern Sie die Ergebnisse in Vektoren mit den Namen `knn_pred_trn` und `knn_pred_tst`.
 
 Dazu benötigen Sie die Funktion `knn.reg()` aus dem FNN-Paket. Die knn.reg() unterscheidet sich sehr von der Funktion lm(). Prüfen Sie die Dokumentation!
 
 ```{r}
-library(FNN)
-mod_knn <- NULL
+knn_pred_trn = knn.reg(train = trn_data["Temp"], test = trn_data["Temp"], y = trn_data["Ozone"], k =  5)
+knn_pred_tst = knn.reg(train = trn_data["Temp"], test = tst_data["Temp"], y = trn_data["Ozone"], k =  5)
+
+# root mean squared error
+sqrt(mean((trn_data$Ozone - knn_pred_trn$pred) ^ 2))
+sqrt(mean((tst_data$Ozone - knn_pred_tst$pred) ^ 2))
+
+# mean absolute error
+mean(abs(trn_data$Ozone - knn_pred_trn$pred))
+mean(abs(tst_data$Ozone - knn_pred_tst$pred))
+
+plot(tst_data$Temp, knn_pred_tst$pred, xlab="y", ylab=expression(hat(y)))
+
 ```
 
 
 - Beschreiben Sie kurz KNN
+Der KNN-Algorithmus weißt neue Daten basierend auf den Ähnlichkeiten zu den bereits bekannten Daten in Klassen zu. Die Anzahl der Klassen (k) wird im Vorfeld definiert. Will man nun einen neuen Datenpunkt prediktieren, vergleicht der KNN-Algorithmus wie weit diser Datenpunkt von anderen Punkten entfernt ist. Für die Berechnung der Entfernung wird z.B. die Euclidean-Distance oder die Manhatten-Distance verwendt. Schließlich wird mit einem Mehrheitsvotum der Punkt zu einer Klasse zugeordnet. 
+Bsp: k = 2. Ist der neue Datenpunkt näher zu Punkten aus der Klasse 1 wird der neue Datenpunkt auch zur Klasse 1 hinzugeordnet
+
 - Interpretieren Sie den Model-Output?
+Anhand des Outputs können wir erkennen, dass das Modell einen r2 Faktor von 0.700, einen MAE von 11.78788 und einen MSE 19.24682 hat. Der Plot verdeutlicht die durchschnittliche Leistung unseres Modells weiter. 
 
 ## 6.6 Ergebnisse [3 Punkte]
 Berechnen Sie sowohl den Trainings- als auch den Test-RMSE für die obigen Modelle unter Verwendung der von Ihnen gespeicherten Vorhersagen
 
 ```{r}
-# 10 rmse -> copy paste
+rmse_trn_1 <- calc_rmse(actual = trn_data$Ozone, predicted = one_pred_train)
+rmse_tst_1 <- calc_rmse(actual = tst_data$Ozone, predicted = one_pred_tst)
 
-rmse_trn_1 <- NULL
-rmse_tst_1 <- NULL
+# 1
+rmse_trn_1
+rmse_tst_1
 
-rmse_trn_2 <- NULL
-rmse_tst_2 <- NULL
 
-rmse_trn_3 <- NULL
-rmse_tst_3 <- NULL
+rmse_trn_2 <- calc_rmse(actual = trn_data$Ozone, predicted = two_pred_train)
+rmse_tst_2 <- calc_rmse(actual = tst_data$Ozone, predicted = two_pred_tst)
 
-rmse_trn_4 <- NULL
-rmse_tst_4 <- NULL
+# 2
+rmse_trn_2
+rmse_tst_2
 
-rmse_trn_5 <- NULL
-rmse_tst_5 <- NULL
 
-# skalierung der modelle ist wichtig (dollar vs. 1000 irgendwas)
+rmse_trn_3 <- calc_rmse(actual = trn_data$Ozone, predicted = three_pred_train)
+rmse_tst_3 <- calc_rmse(actual = tst_data$Ozone, predicted = three_pred_tst)
+
+# 3
+rmse_trn_3
+rmse_tst_3
+
+
+rmse_trn_4 <- calc_rmse(actual = trn_data$Ozone, predicted = four_pred_train)
+rmse_tst_4 <- calc_rmse(actual = tst_data$Ozone, predicted = four_pred_tst)
+
+# 4
+rmse_trn_4
+rmse_tst_4
+
+
+rmse_trn_5 <- calc_rmse(actual = trn_data$Ozone, predicted = five_pred_train)
+rmse_tst_5 <- calc_rmse(actual = tst_data$Ozone, predicted = five_pred_tst)
+
+# 5
+rmse_trn_5
+rmse_tst_5
+
+
+# Knn
+rmse_knn_trn <- calc_rmse(actual = trn_data$Ozone, predicted = knn_pred_trn$pred)
+rmse_knn_tst <- calc_rmse(actual = tst_data$Ozone, predicted = knn_pred_tst$pred)
+
+rmse_knn_trn
+rmse_knn_tst
 ```
 
 
 Berechnen Sie die R2 Scores der Modelle
 
 ```{r}
-r2_trn_1 <- NULL
+r2_trn_1 <- summary(mod_1)$r.squared
+r2_trn_2 <- summary(mod_2)$r.squared
+r2_trn_3 <- summary(mod_3)$r.squared
+r2_trn_4 <- summary(mod_4)$r.squared
+r2_trn_5 <- summary(mod_5)$r.squared
+r2_trn_Knn <- cor(knn_pred_trn$pred, trn_data$Ozone) ^ 2
+
+r2_trn_1
+r2_trn_2
+r2_trn_3
+r2_trn_4
+r2_trn_5
+r2_trn_Knn
 #...
 ```
 
 
 
-Erstellen Sie eine Tabelle, die die Ergebnisse der einzelnen Modellanpassungen zusammenfasst. (Die fünf Polynommodelle und das einzelne KNN-Modell.) Notieren Sie für jedes Modell den Modelltyp, den Wert des Abstimmparameters, den Zug-RMSE und den Test-RMSE. (Betrachten Sie den Polynomgrad als Abstimmungsparameter.) Das Ergebnis sollte eine Tabelle mit einer Überschrift, sechs Zeilen und vier Spalten sein. Blenden Sie im endgültigen gerenderten Dokument den Code aus, der zur Erstellung der Tabelle verwendet wurde.
+Erstellen Sie eine Tabelle, die die Ergebnisse der einzelnen Modellanpassungen zusammenfasst. (Die fünf Polynommodelle und das einzelne KNN-Modell.) Notieren Sie für jedes Modell den Modelltyp, den Wert des Abstimmparameters, den Train-RMSE und den Test-RMSE. (Betrachten Sie den Polynomgrad als Abstimmungsparameter.) Das Ergebnis sollte eine Tabelle mit einer Überschrift, sechs Zeilen und vier Spalten sein. Blenden Sie im endgültigen gerenderten Dokument den Code aus, der zur Erstellung der Tabelle verwendet wurde.
 
 Hinweis: Erstellen Sie zuerst einen Datenrahmen und verwenden Sie dann die kable() Funktion aus dem knitr-Paket. 
 
 ```{r}
-library(knitr)
-library(kableExtra)
+# create a vector with the rmses of the training and test data wo we can plot them
+trn_rmse_vector = c(
+    rmse_trn_1,
+    rmse_trn_2,
+    rmse_trn_3,
+    rmse_trn_4,
+    rmse_trn_5,
+    rmse_knn_trn
+)
+tst_rmses_vector = c(
+    rmse_tst_1,
+    rmse_tst_2,
+    rmse_tst_3,
+    rmse_tst_4,
+    rmse_tst_5,
+    rmse_knn_tst
+)
+
+# because table needs a data frame, we need to create it first
+data = data.frame(
+  method = c("poly", "poly", "poly", "poly", "poly", "knn"),
+  tuning = c(1, 2, 3, 4, 5, 5), 
+  train  = c(trn_rmse_vector),
+  test   = c(tst_rmses_vector)
+)
+colnames(data) = c("Modelltyp", "Abstimmparameter", "Train-RMSE", "Test-RMSE")
+table <- kable(data, format = "html", digits = 2)
+kable_styling(table, full_width = FALSE)
 ```
 
 ## 6.7 Plot der Ergebnisse [2 Punkte]
 Stellen Sie die obige Streudiagramm von Ozon gegen die Temperaturform wieder her. Fügen Sie zu dieser Darstellung das Polynommodell hinzu, das am besten funktioniert hat, sowie das angepasste KNN-Modell. Können Sie diese Darstellung im gerenderten Dokument zentrieren? Blenden Sie den Code wieder aus, um die Darstellung zu erstellen.
 
 ```{r}
-
+ggplot() + geom_point(aes(x=Temp, y=Ozone ), data = trn_data) + xlab("Temp") + ylab("Ozone") + 
+  geom_line(aes(x=trn_data$Temp, y=five_pred_train), color="green") + 
+  geom_line(aes(x=trn_data$Temp, y=knn_pred_trn$pred), color="orange")
 ```
 
 ## 6.8 Multiple Prädiktoren [5 Punkte]
@@ -438,29 +569,10 @@ Bisher haben wir nur einen der verfügbaren Prädiktoren verwendet. Warum nicht 
 [Übung] Fitten Sie ein additives lineares Modell mit Ozon als Antwort und den restlichen Variablen als Prädiktoren ein. Berechnen Sie den Test-RMSE für dieses Modell. Verbessert dies die vorherigen Modelle?
 
 ```{r}
-# your code
-# RMSE von 18
+mod_6 = lm(Ozone ~ ., data = trn_data)
+prediction <- predict(mod_6, tst_data)
+calc_rmse(actual = tst_data$Ozone, predicted = prediction)
+# Ja, dieses Modell ist mit einem RMSE von 19.14013 besser als alle anderen Modelle vorher. Das beste Modell vorher war das Modell poly 5 mit einem Test-RMSE von 19.48.
 ```
-
-```{r, eval=F}
-
-
-# Lösung, nur noch interpretieren
-add_mod = lm(Ozone ~ ., data = trn_data)
-calc_rmse(actual = tst_data$Ozone,
-          predicted = predict(add_mod, tst_data)) # RMSE 18.87183
-```
-
-
-# optional
-- Wie kann man die "ideale" Anzahl von Prädiktoren finden?
-- Welche müssen als "Faktor" behandelt werden? Welche sind sinnvoll? Dummy-Coding
-# Im Noramfall berechnet R die benätigten Daten als "Faktor"
-- Welche Prädiktoren sind Korreliert? Wenn ja, welche? Wenn nein, warum (Plot)? # ggpairs
-- Gibt es Confounder? Wenn ja, welche? Wenn nein, warum (Plot)? # immer plot dazu
-- Gibt es Interaktionen, die Modelliert werden sollten? Wenn ja, welche? Wenn nein, warum (Plot)? # immer plot dazu
-- Gibt es Outlier, Heteroskedastizität, Nicht-Normalverteilung?
-# Es ist Heterodesktast, aber es ist nicht so extrem wie es aussieht. 
-
 
 

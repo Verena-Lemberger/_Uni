@@ -1,7 +1,7 @@
 ---
 title: "Klassifikation"
 subtitle: "Algorithmik und Statistik 1"
-author: "Lukas Huber"
+author: "Sascha Metzger - 1910837830"
 institute: "FH Kufstein"
 date: "2019-01-01 (updated: `r Sys.Date()`)"
 ---
@@ -11,6 +11,29 @@ Bitte um Beachtung der [Übungs-Policy](https://weblearn.fh-kufstein.ac.at/mod/p
 ```{r setup}
 library(statistics4ds)
 library(tidyverse)
+
+library(MASS)
+library(caret)
+library(knitr)
+library(kableExtra)
+
+# specific
+library(e1071)
+library(nnet)
+library(ellipse)
+```
+
+```{r}
+# helper function to caluculate the rmse for a knn
+calc_err = function(actual, predicted) {
+  mean(actual != predicted)
+}
+
+# import data
+weatherAUS = read.csv("data/weatherAUS.csv")
+
+wisc_trn = read.csv("data/wisc-trn.csv")
+wisc_tst = read.csv("data/wisc-tst.csv")
 ```
 
 
@@ -33,10 +56,32 @@ Betrachten Sie zwei verschiedene Vorverarbeitungs-Setups:
 Für jeden Aufbau sind KNN-Modelle mit Werten von `k` von `1` bis `200` zu trainieren. Dabei werden nur die Variablen `Radius`, `Symmetrie` und `Textur` verwendet. Berechnen Sie für jede dieser Größen den Klassifizierungsfehler der Prüfung. Diese Ergebnisse sind in einer einzigen Darstellung zusammenzufassen, die den Prüffehler als Funktion von `k` darstellt. (Die Darstellung hat zwei "Kurven", eine für jeden Aufbau.) Ihre Darstellung sollte visuell ansprechend und gut beschriftet sein und eine Legende enthalten.
 
 ```{r}
-# data types erkennen
-data <- read_csv("data/wisc-tst.csv")
-heads(data)
+# seed
+set.seed(1910837830)
 
+# data types erkennen   !!!!!!!!!!
+# head(wisc_trn)
+
+# k
+k <- 1:200
+
+# define model setups
+wisc_knn_form_1 = as.formula(class ~ radius + symmetry + texture)
+wisc_knn_form_2 = as.formula(class ~ scale(radius) + scale(symmetry) + scale(texture))
+
+# get 200 different modules (from 1 to 200)
+mod_1 = lapply(k, function(x) {knn3(wisc_knn_form_1, data = wisc_trn, k = x)})
+mod_2 = lapply(k, function(x) {knn3(wisc_knn_form_2, data = wisc_trn, k = x)})
+# get the predictions from each of our models
+pred_1 = lapply(mod_1, predict, newdata = wisc_tst, type = "class")
+pred_2 = lapply(mod_2, predict, newdata = wisc_tst, type = "class")
+# calculate the errors for all 200 predictions
+err_1 = sapply(pred_1, calc_err, actual = wisc_tst$class)
+err_2 = sapply(pred_2, calc_err, actual = wisc_tst$class)
+
+plot(k, err_1, type = "l", col = "green", xlab = "k", ylab = "error", ylim = c(0.08, 0.2))
+lines(k, err_2, col = "orange")
+legend("bottomright", c("mod_1", "mode_2"), lty = c(1, 1), col = c("green", "orange"))
 ```
 
 
@@ -69,6 +114,51 @@ Wir werden `M` (maligne) als die "positive" Klasse betrachten, wenn wir die Sens
 ```{r}
 # kein hold out ?
 # wir haben einen CUtoff -> wie wahrscheinlich muss er sein, dass er bösartig ist? 0,5 ist der Standard
+
+# coerce to factor
+wisc_trn$class = as.factor(wisc_trn$class)
+wisc_tst$class = as.factor(wisc_tst$class)
+
+# fit model
+wisc_glm = glm(class ~ radius + symmetry, data = wisc_trn, family = "binomial")
+
+# helper function, specific to glm function
+get_pred_glm = function(mod, data, res = "y", pos = 1, neg = 0, cut = 0.5) {
+  probs = predict(mod, newdata = data, type = "response")
+  ifelse(probs > cut, pos, neg)
+}
+
+# get predicted values for each cutoff
+pred_10 = get_pred_glm(wisc_glm, wisc_tst, res = "class", cut = 0.1, pos = "M", neg = "B")
+pred_50 = get_pred_glm(wisc_glm, wisc_tst, res = "class", cut = 0.5, pos = "M", neg = "B")
+pred_90 = get_pred_glm(wisc_glm, wisc_tst, res = "class", cut = 0.9, pos = "M", neg = "B")
+
+# create table for each cutoff
+tab_10 = table(predicted = pred_10, actual = wisc_tst$class)
+tab_50 = table(predicted = pred_50, actual = wisc_tst$class)
+tab_90 = table(predicted = pred_90, actual = wisc_tst$class)
+
+# coerce tables to be confusion matrixes
+con_mat_10 = confusionMatrix(tab_10, positive = "M")
+con_mat_50 = confusionMatrix(tab_50, positive = "M")
+con_mat_90 = confusionMatrix(tab_90, positive = "M")
+
+metrics = rbind(
+  
+  c(con_mat_10$overall["Accuracy"], 
+    con_mat_10$byClass["Sensitivity"], 
+    con_mat_10$byClass["Specificity"]),
+  c(con_mat_50$overall["Accuracy"], 
+    con_mat_50$byClass["Sensitivity"], 
+    con_mat_50$byClass["Specificity"]),
+  c(con_mat_90$overall["Accuracy"], 
+    con_mat_90$byClass["Sensitivity"], 
+    con_mat_90$byClass["Specificity"])
+)
+
+rownames(metrics) = c("c = 0.10", "c = 0.50", "c = 0.90")
+kable_styling(kable(metrics, format = "html", digits = 3), full_width = FALSE)
+
 ```
 
 
@@ -83,23 +173,32 @@ Achtung die Daten sind nicht normalisiert, skalieren Sie diese gegebenfalls und 
 - Betrachten Sie die Modell-Koeffizienten, was können Sie daraus schließen?
 
 ```{r}
-library(caret)
 set.seed(3456)
-data(weatherAUS)
-weatherAUS_n <- weatherAUS[sample(nrow(weatherAUS), 1000),]
-trainIndex <- createDataPartition(weatherAUS_n$RainTomorrow, p = .75, 
-                                  list = FALSE, 
-                                  times = 1)
 
-# wir brauchen später noch mehr prediktoren
-train <- weatherAUS_n[ trainIndex, ]# %>% select(RainTomorrow, Humidity9am, Humidity3pm) %>% na.omit()
-test  <- weatherAUS_n[-trainIndex, ] # %>% select(RainTomorrow, Humidity9am, Humidity3pm) %>% na.omit()
+data_clean <- weatherAUS %>% na.omit()
+df <- data.frame(RainTomorrow = data_clean$RainTomorrow, Humidity9am = data_clean$Humidity9am, Humidity3pm = data_clean$Humidity3pm) 
 
-# Create and fit your model
-logistic_model <- NULL
+weatherAUS_n <- data_clean[sample(nrow(data_clean), 1000),]
+trainIndex <- createDataPartition(df$RainTomorrow, p = .75,  list = FALSE,  times = 1)
+
+train <- df[ trainIndex, ] 
+test  <- df[-trainIndex, ] 
+
+logistic_model <- train(RainTomorrow ~ Humidity9am + Humidity3pm,  data=train, method="glm", family="binomial", metric = 'Accuracy')
+```
+
+```{r}
+summary(logistic_model)
+
 # Compute and print the accuracy
+mod9am_c1_fit$results$Accuracy
 
 # Assign and print the coefficents
+summary(mod9am_c1_fit)
+
+# Daten noch standardisieren!
+
+# Since our features were normalized beforehand, we can look at the magnitude of our coefficients to tell us the importance of each independent variable. Here you can see the the second variable, Humidity3pm was much more important to our outcome than humidity from that morning. This is intuitive since we are trying to predict the rain for tomorrow!
 ```
 
 
@@ -114,14 +213,17 @@ Wir haben das Modell als `logistic_model` vorher definiert. Generieren und analy
 - Generieren und drucken Sie die Confusionmatrix für Ihr Modell; identifizieren Sie die Fehler Typ I und Typ II für die Testdaten.
 - Berechnen und geben Sie die Genauigkeit Ihres Models aus; können Sie erklären, warum Präzision in diesem Zusammenhang hilfreich ist?
 
-
 ```{r}
-#logistic_model
 # Generate and output the confusion matrix
+mod9am_pred <- predict(mod9am_c1_fit, test)
+m <- confusionMatrix(mod9am_pred, test[,"RainTomorrow"])
 
 # Compute and print the precision
+m
 
-# Compute and print the recall
+# Compute and print the recall Recall = TruePositives / (TruePositives + FalseNegatives)
+recall(m[2]$table)
+
 ```
 
 
@@ -137,12 +239,12 @@ Erstellen Sie ein Pair-Plot für die Trainingsdaten und trainieren Sie dann die 
 - 5 verschiedene Additive logistische Regression (Multinomiale Regression)
   - **Intercept**: $\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0$
   - **Simple**: $\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 \texttt{x}$
-- **Multiple**:$\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2  + \beta_3 x_3$
-- **Additive**: Ein *additives* Modell mit (fast) allen ~5-10 verfügbaren Prädiktoren (Achtung: viele NAs, Faktoren z.B. Location)
-- **Interaction**: Ein *Interaktions* Modell, das alle Begriffe erster Ordnung (von Additive) und alle möglichen Wechselwirkungen in beide Richtungen enthält
-- LDA (mit aus Daten geschätzten Prioren)
-- LDA mit Flachprior
-- Naive Bayes (mit geschätzten Prioren aus den Daten)
+  - **Multiple**:$\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2  + \beta_3 x_3$
+  - **Additive**: Ein *additives* Modell mit (fast) allen ~5-10 verfügbaren Prädiktoren (Achtung: viele NAs, Faktoren z.B. Location)
+  - **Interaction**: Ein *Interaktions* Modell, das alle Begriffe erster Ordnung (von Additive) und alle möglichen Wechselwirkungen in beide Richtungen enthält
+  - LDA (mit aus Daten geschätzten Prioren)
+  - LDA mit Flachprior
+  - Naive Bayes (mit geschätzten Prioren aus den Daten)
 
 Berechnen Sie Test- und Trainfehlerraten für jedes Modell. Fassen Sie diese Ergebnisse in einer einzigen gut formatierten Tabelle zusammen.
 
@@ -155,61 +257,6 @@ mod_simple <- NULL
 mod_multiple <- NULL
 mod_additive <- NULL # careful on this one!
 mod_interaction <- NULL
-```
-
-# Optional: Aufgabe 6 Bias-Variance Tradeoff, Logistic Regression [X Punkte] -> optional
-
-Führen Sie eine Simulationsstudie durch, um den Bias, die Varianz und den mittleren quadratischen Fehler der Schätzung von $p(x)$ mittels logistischer Regression zu schätzen. Erinnere dich daran, dass
-$p(x) = P(Y = 1 | X = x)$.
-
-Betrachten Sie das (wahre) logistische Regressionsmodell
-
-$$
-\log \left( \frac{p(x)}{1 - p(x)} \right) = 1 + 2 x_1  - x_2
-$$
-
-Um den vollständigen Datenerzeugungsprozess zu spezifizieren, betrachten Sie die folgende "R"-Funktion.
-
-```{r}
-make_sim_data = function(n_obs = 100) {
-  x1 = runif(n = n_obs, min = 0, max = 2)
-  x2 = runif(n = n_obs, min = 0, max = 4)
-  prob = exp(1 + 2 * x1 - 1 * x2) / (1 + exp(1 + 2 * x1 - 1 * x2))
-  y = rbinom(n = n_obs, size = 1, prob = prob)
-  data.frame(y, x1, x2)
-}
-```
-
-Im Folgenden wird also ein simulierter Datensatz gemäß dem oben definierten Datenerzeugungsprozess erzeugt.
-
-```{r}
-sim_data = make_sim_data()
-```
-
-Bewerten Sie Schätzungen von $p(x_1 = 0,5, x_2 = 0,75)$ aus vier passenden Modellen:
-
-$$
-\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0
-$$
-
-$$
-\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2
-$$
-
-$$
-\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2  + \beta_3 x_1x_2
-$$
-
-$$
-\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2 + \beta_3 x_1^2 + \beta_4 x_2^2 + \beta_5 x_1x_2
-$$
-
-Verwenden Sie `2000` Simulationen von Datensätzen mit einer Stichprobengröße von `30`, um den quadratischen Bias, die Varianz und den mittleren quadratischen Fehler der Schätzung von $p(x_1 = 0.5, x_2 = 0.75)$ unter Verwendung von $\hat{p}(x_1 = 0.5, x_2 = 0.75)$ für jedes Modell zu schätzen. Berichten Sie Ihre Ergebnisse in einer gut formatierten Tabelle.
-
-
-
-```{r}
-set.seed(123456789)
 ```
 
 # Aufgabe 7 Konzeptprüfung [6 Punkte]
