@@ -295,7 +295,7 @@ kable_styling(kable(results, format = "html", digits = 3), full_width = FALSE)
 Beantworten Sie die folgenden Fragen auf der Grundlage Ihrer Ergebnisse aus den Aufgaben **[je 1 Punkt]**.
 
 **(a)** In Aufgabe 5, warum schneidet Naive Bayes schlecht ab?
-?
+Der Nachteil eines Naive Bayes ist es, dass große Mengen von Daten erforderlich  sind  um gute Ergebnisse zu erhalten und wenn ein Wert in den Daten nicht vertreten ist, wird die Ergebniswahrscheinlichkeit auf 0 geschätzt.
 
 **(b)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle schneidet am besten ab?
 Das Modell mit cut_10 (gleich mit e?)
