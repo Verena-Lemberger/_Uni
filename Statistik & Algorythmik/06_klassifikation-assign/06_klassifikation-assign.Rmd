@@ -59,8 +59,8 @@ Für jeden Aufbau sind KNN-Modelle mit Werten von `k` von `1` bis `200` zu train
 # seed
 set.seed(1910837830)
 
-# data types erkennen   !!!!!!!!!!
-# head(wisc_trn)
+wisc_trn$class = as.factor(wisc_trn$class)
+wisc_tst$class = as.factor(wisc_tst$class)
 
 # k
 k <- 1:200
@@ -112,10 +112,6 @@ $$
 Wir werden `M` (maligne) als die "positive" Klasse betrachten, wenn wir die Sensitivität und Spezifität berechnen. Fassen Sie diese Ergebnisse in einer einzigen gut formatierten Tabelle zusammen.
 
 ```{r}
-# kein hold out ?
-# wir haben einen CUtoff -> wie wahrscheinlich muss er sein, dass er bösartig ist? 0,5 ist der Standard
-
-# coerce to factor
 wisc_trn$class = as.factor(wisc_trn$class)
 wisc_tst$class = as.factor(wisc_tst$class)
 
@@ -144,7 +140,6 @@ con_mat_50 = confusionMatrix(tab_50, positive = "M")
 con_mat_90 = confusionMatrix(tab_90, positive = "M")
 
 metrics = rbind(
-  
   c(con_mat_10$overall["Accuracy"], 
     con_mat_10$byClass["Sensitivity"], 
     con_mat_10$byClass["Specificity"]),
@@ -155,6 +150,8 @@ metrics = rbind(
     con_mat_90$byClass["Sensitivity"], 
     con_mat_90$byClass["Specificity"])
 )
+
+metrics
 
 rownames(metrics) = c("c = 0.10", "c = 0.50", "c = 0.90")
 kable_styling(kable(metrics, format = "html", digits = 3), full_width = FALSE)
@@ -191,10 +188,10 @@ logistic_model <- train(RainTomorrow ~ Humidity9am + Humidity3pm,  data=train, m
 summary(logistic_model)
 
 # Compute and print the accuracy
-mod9am_c1_fit$results$Accuracy
+logistic_model$results$Accuracy
 
 # Assign and print the coefficents
-summary(mod9am_c1_fit)
+summary(logistic_model)
 
 # Daten noch standardisieren!
 
@@ -215,7 +212,7 @@ Wir haben das Modell als `logistic_model` vorher definiert. Generieren und analy
 
 ```{r}
 # Generate and output the confusion matrix
-mod9am_pred <- predict(mod9am_c1_fit, test)
+mod9am_pred <- predict(logistic_model, test)
 m <- confusionMatrix(mod9am_pred, test[,"RainTomorrow"])
 
 # Compute and print the precision
@@ -251,11 +248,9 @@ Berechnen Sie Test- und Trainfehlerraten für jedes Modell. Fassen Sie diese Erg
 Interpretieren/visualisieren Sie die Modelle
 
 ```{r}
-set.seed(1910837830)
-
 data_clean <- weatherAUS %>% na.omit()
-data_clean$RainTomorrow <- as.factor(data_clean$RainTomorrow)
-
+data_clean$RainTomorrow = as.factor(data_clean$RainTomorrow)
+df <- data.frame(RainTomorrow = data_clean$RainTomorrow, Humidity9am = data_clean$Humidity9am, Humidity3pm = data_clean$Humidity3pm) 
 
 weatherAUS_n <- data_clean[sample(nrow(data_clean), 1000),]
 trainIndex <- createDataPartition(df$RainTomorrow, p = .75,  list = FALSE,  times = 1)
@@ -263,15 +258,36 @@ trainIndex <- createDataPartition(df$RainTomorrow, p = .75,  list = FALSE,  time
 train <- data_clean[ trainIndex, ] 
 test  <- data_clean[-trainIndex, ] 
 
-y <- train$RainTomorrow
+# fit models
+mod_intercept =   glm(RainTomorrow ~ 1, data = data_clean, family = "binomial")
+mod_simple =      glm(RainTomorrow ~ Humidity3pm, data = data_clean, family = "binomial")
+mod_multiple =    glm(RainTomorrow ~ Humidity3pm + Humidity9am, data = data_clean, family = "binomial")
+mod_additive =    glm(RainTomorrow ~ (Humidity3pm + Humidity9am), data = data_clean, family = "binomial")
+mod_interaction = glm(RainTomorrow ~ (Humidity3pm + Humidity9am) ^ 2, data = data_clean, family = "binomial")
 
+# create model list
+mod_list = list(mod_intercept, mod_simple, mod_multiple, mod_additive, mod_interaction)
 
-# pair plot
-mod_intercept <- NULL
-mod_simple <- NULL
-mod_multiple <- NULL
-mod_additive <- NULL # careful on this one!
-mod_interaction <- NULL
+# get predicted probabilities from fitted models
+trn_prob = lapply(mod_list, predict, newdata = train)
+tst_prob = lapply(mod_list, predict, newdata = test)
+
+# get predictions and calculate errors
+trn_err  = sapply(trn_prob, calc_err, actual = train$RainTomorrow)
+tst_err  = sapply(tst_prob, calc_err, actual = test$RainTomorrow)
+
+# create df of results
+results = data.frame(
+  name = c("**Intercept**", "**Simple**", "**Multiple**", "**Additive**", "**Interaction**"),
+  trn_err = trn_err,
+  tst_err = tst_err
+)
+colnames(results) = c("Model Name", "Train Error", "Test Error")
+
+# create results table
+kable_styling(kable(results, format = "html", digits = 3), full_width = FALSE)
+
+# Leider wusste ich nicht mehr weiter und ich konnte auch keinen Weg finden, wie ich anhand der Daten auf das gewünschte Ergebnis komme. 
 ```
 
 # Aufgabe 7 Konzeptprüfung [6 Punkte]
@@ -279,22 +295,20 @@ mod_interaction <- NULL
 Beantworten Sie die folgenden Fragen auf der Grundlage Ihrer Ergebnisse aus den Aufgaben **[je 1 Punkt]**.
 
 **(a)** In Aufgabe 5, warum schneidet Naive Bayes schlecht ab?
-
+?
 
 **(b)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle schneidet am besten ab?
-Das Modell mit cut_50
-
+Das Modell mit cut_10 (gleich mit e?)
 
 **(c)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle könnte Ihrer Meinung nach zu wenig geeignet sein?
 Das Modell mit cut_90 -> overfitting
 
-
 **(d)** Welches dieser Modelle könnte Ihrer Meinung nach aufgrund Ihrer Ergebnisse in Aufgabe 5 überdimensioniert sein?
-
+Das Interaction-Modell, das es sehr komplex ist. 
 
 **(e)** Welche der Klassifikatoren aus Aufgaben 1+2 bevorzugen Sie?
-Das Modell mit cut_50
+Das Modell mit cut_10 (gleich mit b?)
 
 **(f)** Nennen Sie die Metrik, die Sie für Ihre Entscheidung verwendet haben, teilweise **(e)**, und einen Grund für die Verwendung dieser Metrik.
-Accuracy
+Das Modell mit c = 0,10 erreicht die höchste Sensitivität, es erkennt Krebs also am häufigsten.
   
