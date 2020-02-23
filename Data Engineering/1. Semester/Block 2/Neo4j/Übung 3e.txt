@@ -1,0 +1,29 @@
+//Übung 3e Graph 
+
+
+//Listet alle Personen auf, die euer Graph enthält.
+MATCH (x:Person) RETURN x.name
+
+
+//Gebt die Anzahl der Personen in eurem Graph zurück.
+MATCH (x:Person) RETURN count(x.name) AS Personenzahl
+
+//Gebt die Anzahl der Beziehungen in eurem Graph zurück.
+MATCH ()-->() RETURN count(*)
+
+//Listet alle Beziehungen vom Typ "knows" und deren teilnehmende Entitäten auf.
+MATCH (p)-[k]->(q)
+WHERE k="Knows"
+RETURN p,k,q
+
+//Listet alle Beziehungen vom Typ "knows" auf, an denen ausschließlich Personen beteiligt sind.
+MATCH (x:Person)-[y:Knows]->(z:Person)
+RETURN x,y,z
+
+//Listet alle Beziehungen vom Typ "knows" auf, an denen eine Person und ein Nicht-Personen-Objekt beteiligt ist.
+
+MATCH (x:Person)-[y:Knows]->(z:Thema)
+RETURN x,y,z
+
+
+

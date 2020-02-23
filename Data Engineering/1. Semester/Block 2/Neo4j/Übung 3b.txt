@@ -1,0 +1,26 @@
+//Übung 3b Graph
+
+
+CREATE (p:Person {name:"Paul Fen", home:"USA"})
+CREATE (b:Person {name:"Bill Fu", home:"UK"})
+CREATE (s:Person {name:"Sarah Klein", home:"Austria"})
+CREATE (a:Person {name:"Amir"})
+CREATE (r:Person {name:"Rico"})
+
+CREATE (ds:Job {name:"Data Science"})
+CREATE (se:Job {name:"Software Engineer"})
+
+CREATE (p)-[k:Knows]->(b)-[:Knows]->(p)
+CREATE (b)-[:Knows]->(s)-[:Knows]->(b)
+CREATE (s)-[:Knows]->(a)-[:Knows]->(s)
+CREATE (s)-[:Knows]->(r)
+
+CREATE (b)-[r1:WorksAs {since:"2017-01-15"}]->(ds)
+CREATE (p)-[:WorksAs {since:"2009-11-05"}]->(se)
+//CREATE (s)-[r2:Worked {from:"2010-01-01" to:"2013-04-18"}]->(se)
+CREATE (s)-[:WorksAs {since:"2013-04-18"}]->(ds)
+CREATE (a)-[:WorksAs {since:"2012-10-21"}]->(ds)
+CREATE (r)-[:WorksAs]->(se)
+
+CREATE (a)-[l:Likes]->(r)
+CREATE (s)-[:Likes]->(b)

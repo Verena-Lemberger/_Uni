@@ -1,0 +1,62 @@
+{
+	"name": "Frank Kane",
+	"currentPosition": "Founder of Sundog Software, LLC",
+	"locationCountry": "Winter Springs",
+	"locationState": "Florida",
+	"contacts": 8.999,
+	"info": "Founder & CEO of Sundog Software, publishers of online video training courses and makers of the SilverLining Sky, Cloud, and Weather SDK and the Triton Ocean SDK. Broad and deep experience in software engineering, computer graphics, technical leadership, and machine learning.",
+	"activities": [
+		{
+			"image": "https://media-exp1.licdn.com/media-proxy/ext?w=1920&h=1280&f=pj&hash=Pg%2B9k9e2dh1wH0e10orbrchy1vg%3D&ora=1%2CaFBCTXdkRmpGL2lvQUFBPQ%2CxAVta5g-0R6pnBUOxxI1rr2Iq1u14AlCUM3LEi3yBHvur4vEfzKpJZiOLfG-pl0UeDMBkhsze-6rQjnjF4zqdNW7YI8gycL4d8-4aRUAfBB7iGxL5dIyNxxppZ2oDqb4ZS9CxuQVPH3oYO67Ph8vEi0y7-nHLojVFhMbyVE&shareType=article",
+			"name": "AI is rapidly transforming the pharmaceutical industry… Learn more at",
+			"numberOfReactions": 13
+		}
+	],
+	"professionalExperience": [
+		{
+			"image": "https://media-exp1.licdn.com/dms/image/C4E0BAQHdPYlLZq3gEg/company-logo_100_100/0?e=1590624000&v=beta&t=jwW-hOWh8ug42vF38Tfm7HeCCQprz0QOnwnt03ZxQK8",
+			"position": "Founder",
+			"company": "Sundog Education",
+			"startMonth": 5,
+			"startYear": 2017,
+			"endMonth": null,
+			"endYear": null,
+			"locationCountry": "Winter Springs",
+			"locationState": "Florida",
+			"description": "Sundog Education is Sundog Software's new brand for online learning. Our mission is to make highly valuable skills in machine learning, big data, AI, and data science accessible at prices anyone in the world can afford. Our current online courses have reached over 300,000 students worldwide."
+		}
+	],
+	"education": [
+		{
+			"image": "https://media-exp1.licdn.com/dms/image/C510BAQERdqvS3PNJSg/company-logo_100_100/0?e=1590624000&v=beta&t=AlNbCpWzbcTQQgb1MYCe6kUZA6Aqi3J-KvsDCEeNu44",
+			"institution": "University of central Florida",
+			"startMonth": null,
+			"startYear": 2013,
+			"endMonth": null,
+			"endYear": 2013
+		}
+	],
+	"certificates": [
+		{
+			"image": "https://media-exp1.licdn.com/dms/image/C4D0BAQGzuSBRRRuphw/company-logo_100_100/0?e=1590624000&v=beta&t=vA1MeMlmE8vbU5cxeDU-X3qoAzU5U__Gy3CreQId3cQ",
+			"institution": "Amazon Web Services (AWS)",
+			"info": "AWS Certified Machine Learning - Speciality",
+			"issuedAtMonth": 8,
+			"issuedAtYear": 2019,
+			"validUntilMonth": 8,
+			"validUntilYear": 22
+		}
+	],
+	"skills": [
+		{
+			"name": "Software Engineering",
+			"confirmedBy": [
+				123123,
+				123134,
+				1345135,
+				135135,
+				135135
+			]
+		}
+	]
+}

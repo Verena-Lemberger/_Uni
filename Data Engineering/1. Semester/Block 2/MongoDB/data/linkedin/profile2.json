@@ -1,0 +1,37 @@
+{
+	"name": "Bill Gates",
+	"currentPosition": "Co-chair, Bill & Melinda Gates Foundation",
+	"locationCountry": "Seattle",
+	"locationState": "Washington",
+	"contacts": 24979994,
+	"info": "Co-chair of the Bill & Melinda Gates Foundation. Microsoft Co-founder. Voracious reader. Avid traveler. Active blogger.",
+	"activities": [
+		{
+			"image": "https://media-exp1.licdn.com/dms/image/C4E22AQF_TejousAHTg/feedshare-shrink_160/0?e=1585180800&v=beta&t=FWmHUWNQWPBT1390GSl_U3mMz5QnJPu-oPaeScOWh0c",
+			"name": "Tackling climate change is going to demand historic levels of global cooperation, unprecedented amounts of innovation in nearly every sector of the economy, widespread deployment of today’s clean-energy solutions like solar and wind, and a concerted effort to work with the people who are most vulnerable to a warmer world. It’s a complicated challenge but I believe we can avoid a climate catastrophe. Here’s how: https://lnkd.in/exYJtZG",
+			"numberOfReactions": 10252,
+			"comments": 467
+		}
+	],
+	"professionalExperience": [
+		{
+			"image": "https://www.linkedin.com/company/bill-&-melinda-gates-foundation/?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base%3BDN2B1WLQQsq6ePJRLEDllw%3D%3D&licu=urn%3Ali%3Acontrol%3Ad_flagship3_profile_view_base-background_details_company",
+			"position": "Co-Chair",
+			"company": "Billl & Melinda Gates Foundation",
+			"startMonth": null,
+			"startYear": 2000,
+			"endMonth": null,
+			"endYear": null
+		}
+	],
+	"education": [
+		{
+			"image": "https://www.linkedin.com/school/18483/?legacySchoolId=18483&lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base%3BDN2B1WLQQsq6ePJRLEDllw%3D%3D&licu=urn%3Ali%3Acontrol%3Ad_flagship3_profile_view_base-background_details_school",
+			"institution": "Harvard University",
+			"startMonth": null,
+			"startYear": 1973,
+			"endMonth": null,
+			"endYear": 1975
+		}
+	]
+}

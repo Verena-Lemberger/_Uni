@@ -1,0 +1,78 @@
+{
+	"title": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems",
+	"image": "https://images-na.ssl-images-amazon.com/images/I/51gP9mXEqWL._SL200_.jpg",
+	"ISBN-13": 9781449373320,
+	"ISBN-10": 1449373321,
+	"Authors": [
+		"Martin Kleppmann"
+	],
+	"Edition": 1,
+	"Binding": "Paperback",
+	"Publisher": "O'Reilly Media",
+	"PublishedMonth": 4,
+	"PublishedYear": 2017,
+	"ListPrice": 59.99,
+	"Currency": "$",
+	"bestPriceNew": [
+		{
+			"seller": "Amazon.com Marketplace",
+			"sellerImage": "https://isbnsearch.org/images/merchants/2104.png",
+			"price": 31,
+			"shipping": 3.99,
+			"notes": "new",
+			"buyLink": "https://isbnsearch.org/book?loc=0_X1U9CDHNzLR_ILcDqW3Y1iP6jNNa6g8o86uR-6QuqUWtBGjpD2sPKBUHvWs-4SivuCGYUD01mCziATp1GAmVcqqGjo0k6XA9XCjuJ9NTluLuaUsytSx0XfN-VNe2Am5z-RnSzkQrLKmmV4xrqj1Bpd9WYWTQpZrHcN0KV1kWJ8CRVjP6vUGapGSj8Npt7lu6yM01JDyY8eb6jAxg8Qkpad5YTJ261botOH8Qx7oXxR_0QTjzBBfLF_Gh9vmSL2"
+		},
+		{
+			"seller": "Amazon.com",
+			"sellerImage": "https://isbnsearch.org/images/merchants/3.png",
+			"price": 35.2,
+			"shipping": 0,
+			"notes": "Brand new, never used, buy direct from Amazon with confidence - Qualifies for FREE Super Saver Shipping",
+			"buyLink": "https://isbnsearch.org/book?loc=0_X1U9CDHNzLR_ILcDqW3Y1iP6jNNa6g8o86uR-6QuqGWaW75-XgWT7tPeuk4z6gbZvKJ0zPsnmIeTOtdfrhFnPCAyCqEybld8pugSgU8xGv4JDqJcNATQ4RouY-fKkwvE980HczZkIdqHWJek2ZscC8qj7Ok99-vwTMnxYSrt3SOe_7DyFom2_dqp904sjY_8z2QtvZUGD9AwMg3eNRrg"
+		},
+		{
+			"seller": "AbeBooks.com",
+			"sellerImage": "https://isbnsearch.org/images/merchants/2022.png",
+			"price": 36.6,
+			"shipping": 0,
+			"notes": "Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems",
+			"buyLink": "https://isbnsearch.org/book?loc=-L3OyYvtIyMGcM_vUZd4ra4GxIveUvRc9QJwltPKG-5E4Wmpt0sMy2dhGcRr2c1Q5-eYac1eiBv04nUQqwxMSULJuYi-heX5SDBbuUZHUuM_CFWHSawCFU6fERpJHWkWJC1DsMhNCLi6JRQXH1XvYIlmS3weoAoVfedTNd258COWWNC5LcnSFQcUjAglREjf5Qdr18J0ZT1IppPg3QFrEVj0xGRx6lRBodSIUPosCYIo2HULQAW-4HjstUFaFZKIr4t4rH_pPjg4EhcF83LYHON7c_A99X1YGB9ogkir9eVWtCNJlVBC8wUa5tGGAqwd9kS4_0-LylpHoPYUjg0mhddMwbzP_vc_emwZ9256mWFIioa5d3wBbarTHybL6a_C"
+		}
+	],
+	"bestPriceUsed": [
+		{
+			"seller": "SecondSale",
+			"sellerImage": "https://isbnsearch.org/images/merchants/2123.png",
+			"price": 33.35,
+			"shipping": 0,
+			"notes": "None",
+			"buyLink": "https://isbnsearch.org/book?loc=12uriUsPCKCGmYD-1AL0lKfM2_TS6A5Ye-1-j6RA5cizbHeQAdu5oDdr_UBCh5PFmVWLmHhBIvHuBJ1ZgRaBfbPEkoLBgpr5C8ssqQHrNLjr1BHoDbqokHWC-Xnb2x-TDmF-IJzwdaqqrC73tKZjJyPjGj6822GvN5kojPLHKKndbnw3-LSvpTlvkQx3Duuh3qBP0S2FLSaYExHEAqiDPwTrTYkBC1p3GDZtHatcfvKiwcNc2x1XaaIRWF-JyYXgy4lDlO9apUsknrtpgtuI40UvM0jgoMeY-KgbPP1SXDo"
+		},
+		{
+			"seller": "AbeBooks.com",
+			"sellerImage": "https://isbnsearch.org/images/merchants/2022.png",
+			"price": 36.6,
+			"shipping": 0,
+			"notes": "1449373321 Item in very good condition! Textbooks may not include supplemental items i.e. CDs, access codes etc.",
+			"buyLink": "https://isbnsearch.org/book?loc=-L3OyYvtIyMGcM_vUZd4ra4GxIveUvRc9QJwltPKG-5E4Wmpt0sMy2dhGcRr2c1Q5-eYac1eiBv04nUQqwxMSULJuYi-heX5SDBbuUZHUuM_CFWHSawCFU6fERpJHWkWJC1DsMhNCLi6JRQXH1XvYIlmS3weoAoVfedTNd258COWWNC5LcnSFQcUjAglREjf5Qdr18J0ZT1IppPg3QFrEUx5bld8c2ZrMOb_vIrj0gjDKHutFaZgOsHetFA-IDaGKrvfKEidD42HvsCG7lvIJBWdd48_9rMxA7Zecw5b05pXwroSmzr1TKjR48kzKcRdcIqyN32m9grJyEq_cUNcvWc8zorXt_994GX006OvK0ZSEKpok8n-pBp9cclraNRD"
+		},
+		{
+			"seller": "Amazon.com Marketplace",
+			"sellerImage": "https://isbnsearch.org/images/merchants/2104.png",
+			"price": 29.99,
+			"shipping": 3.99,
+			"notes": "verygood",
+			"buyLink": "https://isbnsearch.org/book?loc=0_X1U9CDHNzLR_ILcDqW3Y1iP6jNNa6g8o86uR-6QuqUWtBGjpD2sPKBUHvWs-4SivuCGYUD01mCziATp1GAmVcqqGjo0k6XA9XCjuJ9NTluLuaUsytSx0XfN-VNe2AmqIwMfEog1V7D_Cg-jf1XmkRKcR4TJ45jzQbojrBafzx4ZZBTu4jd_R-v8GtpKHVsAI_pZN3CGuF21j2NKXUPAi5SZlPFPxYhmBGopg7r66562TBS-iyEATDIWuDh4NUA"
+		}
+	],
+	"bestPriceRental": [
+		{
+			"seller": "Chegg",
+			"sellerImage": "https://isbnsearch.org/book?loc=wNzW6QfZwiPVbHKiRL5ju8LCCwNWyK6cHrUCypHOdkH-_pPQalRdvA7hOcT_YF-lM7LD_9RHYRrx41aKrdMOmMVIGVa3RdsqYUCOArP3du2DHBpWp7h5KsUNHN-whPaktN7D-rJkEZ9kxwFUkLks59eGB1dHvT91y05HI1Zp52sa5UJEDX2lL22srdmV1WtUJtO5rHVPqfxSE1otjy9WprWqkQ-SwWWK0fkluxpducBcArTq7sV4u2ymRDzmu_YHot6SG_REM7sPvZCqAybWNOajgOQyz3ikzsniUMuWUW7a512c7Bc48z83BsqtY1XnGV-h09z86U7N4dDkuMVGHh4aMZf6fJAG_GTRmbgd11kJAW4K4XmZ-E8UeJtWeoAr",
+			"price": 22.49,
+			"shipping": 5.99,
+			"notes": "Books are in very good condition. If you're unhappy with the quality of any book we rent, we'll immediately ship you another copy by the quickest means available. Our only request is that you return the original rental book to Chegg.",
+			"buyLink": "https://isbnsearch.org/book?loc=wNzW6QfZwiPVbHKiRL5ju8LCCwNWyK6cHrUCypHOdkH-_pPQalRdvA7hOcT_YF-lM7LD_9RHYRrx41aKrdMOmMVIGVa3RdsqYUCOArP3du2DHBpWp7h5KsUNHN-whPaktN7D-rJkEZ9kxwFUkLks59eGB1dHvT91y05HI1Zp52sa5UJEDX2lL22srdmV1WtUJtO5rHVPqfxSE1otjy9WprWqkQ-SwWWK0fkluxpducBcArTq7sV4u2ymRDzmu_YHot6SG_REM7sPvZCqAybWNOajgOQyz3ikzsniUMuWUW7a512c7Bc48z83BsqtY1XnGV-h09z86U7N4dDkuMVGHh4aMZf6fJAG_GTRmbgd11kJAW4K4XmZ-E8UeJtWeoAr"
+		}
+	]
+}

@@ -1,0 +1,17 @@
+//Übung 3a Graph
+
+
+CREATE (b:Person {name:"Bill"})
+CREATE (p:Person {name:"Paul"})
+CREATE (s:Person {name:"Sarah"})
+CREATE (a:Person {name:"Amir"})
+CREATE (r:Person {name:"Rico"})
+
+CREATE (ds:Thema {name:"Data Science"})
+
+CREATE (p)-[k:Knows]->(b)-[:Knows]->(p)
+CREATE (p)-[:Knows]->(s)-[:Knows]->(p)
+CREATE (b)-[:Knows]->(a)-[:Knows]->(b)
+CREATE (b)-[:Knows]->(ds)-[:Knows]->(b)
+CREATE (s)-[:Knows]->(rico)-[:Knows]->(s)
+CREATE (s)-[l:Likes]->(rico)-[:Likes]->(s)
