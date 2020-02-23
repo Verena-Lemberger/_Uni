@@ -1,0 +1,370 @@
+---
+title: "Unsupervised Learning"
+author: "Sascha Metzger - 1910837830"
+date: '2019-01-01 (updated: `r Sys.Date()`)'
+subtitle: Algorithmik und Statistik 1
+institute: FH Kufstein
+---
+  
+```{r setup}
+library(caret)
+library(GGally)
+library(corrplot)
+pacman::p_load(tidyverse, ggfortify)
+data <- read_csv(file = "data/wisc.csv")
+```
+  
+  
+# Unsupervised Learning
+
+Für dieses Blatt verwenden wir den kompletten Wisconsin Datensatz `wisc.csv`. Wir betrachten aber nicht die Vorhersage der Klasse (meist entfernen wir die Spalte "class"), sondern versuchen Features zu analysiseren.
+
+```{r}
+head(data)
+glimpse(data)
+
+classes <- data %>% group_by(class) %>% tally()
+classes
+
+meanOfNumCols <- lapply(data[2:ncol(data)], mean)
+meanOfNumCols
+
+sdOfNumCols <- lapply(data[2:ncol(data)], sd)
+sdOfNumCols
+
+corr <- cor(data[2:ncol(data)])
+corr
+
+corMatMy <- cor(data[2:ncol(data)])
+corrplot(corMatMy, order = "hclust", tl.cex = 0.7)
+
+ggp = ggpairs(data[1:11], aes(color=class, alpha=0.4), progress = F)
+suppressMessages(print(ggp))
+```
+
+
+## Aufgabe 1 EDA [5 Punkte]
+
+[x] Wie viele Beobachtungen haben eine gutartige oder bösartige Diagnose ?
+M steht für "malignant / bösartig" und somit gibt es 212 bösartige Diagnosen.
+B steht für "benign / gutartig" und hiervon gibt es 357 Beobachtungen.
+
+[x] Was ist der Mittelwert der einzelnen numerischen Spalten?
+$radius
+[1] 14.12729
+$texture
+[1] 19.28965
+$perimeter
+[1] 91.96903
+$area
+[1] 654.8891
+$smoothness
+[1] 0.09636028
+$compactness
+[1] 0.104341
+$concavity
+[1] 0.08879932
+$concave
+[1] 0.04891915
+$symmetry
+[1] 0.1811619
+$fractal
+[1] 0.06279761
+
+[x] Was ist die sd jeder der numerischen Spalten?
+$radius
+[1] 3.524049
+$texture
+[1] 4.301036
+$perimeter
+[1] 24.29898
+$area
+[1] 351.9141
+$smoothness
+[1] 0.01406413
+$compactness
+[1] 0.05281276
+$concavity
+[1] 0.07971981
+$concave
+[1] 0.03880284
+$symmetry
+[1] 0.02741428
+$fractal
+[1] 0.007060363
+
+[x] Wie sind die Variablen miteinander verbunden (Corrplot)?
+                radius     texture  perimeter       area  smoothness compactness concavity   concave   symmetry     fractal
+radius       1.0000000  0.32378189  0.9978553  0.9873572  0.17058119   0.5061236 0.6767636 0.8225285 0.14774124 -0.31163083
+texture      0.3237819  1.00000000  0.3295331  0.3210857 -0.02338852   0.2367022 0.3024178 0.2934641 0.07140098 -0.07643718
+perimeter    0.9978553  0.32953306  1.0000000  0.9865068  0.20727816   0.5569362 0.7161357 0.8509770 0.18302721 -0.26147691
+area         0.9873572  0.32108570  0.9865068  1.0000000  0.17702838   0.4985017 0.6859828 0.8232689 0.15129308 -0.28310981
+smoothness   0.1705812 -0.02338852  0.2072782  0.1770284  1.00000000   0.6591232 0.5219838 0.5536952 0.55777479  0.58479200
+compactness  0.5061236  0.23670222  0.5569362  0.4985017  0.65912322   1.0000000 0.8831207 0.8311350 0.60264105  0.56536866
+concavity    0.6767636  0.30241783  0.7161357  0.6859828  0.52198377   0.8831207 1.0000000 0.9213910 0.50066662  0.33678336
+concave      0.8225285  0.29346405  0.8509770  0.8232689  0.55369517   0.8311350 0.9213910 1.0000000 0.46249739  0.16691738
+symmetry     0.1477412  0.07140098  0.1830272  0.1512931  0.55777479   0.6026410 0.5006666 0.4624974 1.00000000  0.47992133
+fractal     -0.3116308 -0.07643718 -0.2614769 -0.2831098  0.58479200   0.5653687 0.3367834 0.1669174 0.47992133  1.00000000
+
+[x] Was können wir bis jetzt daraus schliessen? (Welche Variablen sind besonders hoch korreliert?)
+Es gibt viele Variablen welche miteinander korreliert sind. Allerdings sind die hoch korrelierenden Merkmale häufig redundant (bspw. radius & area). Sollten wir später Ergebnisse treffen, müssen wir dies berücksichtigen. Nur weil diese Merkmale hoch korrelieren beudetet es nicht, dass sie uns helfen ein Ergebnis vorherzusagen.
+
+
+
+## Aufgabe 2 PCA [15 Punkte]
+
+[x] Erstelle ein PCA-Modell und gib das Summary aus. (Hinweis, ohne Skalierung/Normalisierung) Funktion `princomp` (Hinweis: wir verwenden sowohl princomp als auch pr.comp - Unterschied in der Hilfe)
+
+```{r}
+wdbc.data <- as.matrix(data[2:ncol(data)])
+
+wdbc.pcov <- princomp(wdbc.data, scores = TRUE)
+summary(wdbc.pcov)
+```
+
+
+
+[x] Erstelle einen Plot mit der funktion `biplot`.
+```{r}
+suppressWarnings(biplot(wdbc.pcov))
+```
+
+[x] Interpretiere den Plot, was fällt auf? (Einfluss der ersten beiden Hauptkomponenten?)
+Es fällt auf, dass die ersten beiden Hauptkomponenten unterschiedliche Maßeinheiten haben. Dies kann zu verstärkten Varianzen führen und die Interpretation erschweren.
+
+
+[x] Plotte die Varianz erklärt für die Hauptkomponenten. Was fällt dabei auf (seltsames Ergebnis wird erwartet).
+```{r}
+pr.cvar <- wdbc.pcov$sdev ^ 2
+pve_cov <- pr.cvar/sum(pr.cvar)
+plot(pve_cov, xlab = "Principal Component", ylab = "Proportion of Variance Explained", ylim = c(0, 1), type = "b")
+
+# Es fällt dabei auf, dass bereits ein Großteil der Varianz mit Comp.1 erklärt werden kann.
+```
+
+
+
+
+
+### Durchführung von PCA mit Korrelationsmatrix:
+Wenn die Korrelationsmatrix zur Berechnung der Eigenwerte und Eigenvektoren(Hauptkomponenten) verwendet wird, verwenden wir die Funktion prcomp().
+
+
+[x] Erstelle eine PCA mit *center* und *scale* mit der Funktion prcomp und interpretiere den output.
+```{r}
+wdbc.pr <- prcomp(wdbc.data, scale = TRUE, center = TRUE)
+summary(wdbc.pr)
+
+# Die ersten drei Componenten können 0.88779 Anteile der Varianz erklären. Mit den unskalierten Daten konnte bereits PC1 den Großteil der Varianz erklären.
+```
+
+[x] Erstelle einen Plot wie oben, der den Anteil der Varianz-Explained jeder Hauptkomponente darstellt.
+```{r}
+cex.before <- par("cex")
+par(cex = 0.7)
+biplot(wdbc.pr)
+```
+
+
+
+[x] Erstelle einen Scatterplot der ersten beiden Hauptkomponenten und füge die Klasse als Variable hinzu. Sind die Klassen separiert? Wenn ja, was können wir daraus schliessen?
+```{r}
+# Create diagnosis vector
+diagnosis <- as.numeric(data$class == "M")
+plot(wdbc.pr$x[, c(1, 2)], col = (diagnosis + 1), xlab = "PC1", ylab = "PC2")
+legend(x="topleft", pch=1, col = c("red", "black"), legend = c("B", "M"))
+
+# Im Plot können wir erkennen, dass es eine klare Trennung der Diagnose (M oder B) gibt.
+```
+
+
+### Berechnen Sie den Anteil der erklärten Varianz
+
+[x] Berechnen Sie den Anteil der erklärten Varianz wie vorher und beantworten Sie wie viele Komponenten sind notwendig um 95% der Varianz zu erklären. (Hinweis `cumsum`)
+
+```{r}
+pr.var <- wdbc.pr$sdev ^ 2
+names(pr.var) <- names(pr.cvar)
+pve <- pr.var/sum(pr.var)
+cumsum(pve)
+
+# Mit 5 Komponenten können wir 0.97 Anteile der Varianz erklären.
+```
+
+
+
+
+
+### Variation der PCA, Entfernen korrelierter Prädiktoren
+
+Lassen Sie uns die gleiche Übung mit einem zweiten df durchführen, bei der wir die hoch korrelierten Prädiktoren (Corr>0.95) entfernt haben. (Center+Scale=T)
+
+[x] Plotten Sie den Screeplot und interpretieren Sie die loadings.
+
+```{r}
+wdbc_cor <- colnames(data)[findCorrelation(corr, cutoff = 0.95, verbose = TRUE)]
+wdbc_cor <- data[, which(!colnames(data) %in% wdbc_cor)]
+
+cancer.pca <- prcomp(wdbc_cor, center=TRUE, scale=TRUE)
+plot(cancer.pca, type="l", main='')
+grid(nx = 10, ny = 14)
+title(main = "Principal components weight", sub = NULL, xlab = "Components")
+box()
+
+summary(cancer.pca)
+
+# Mit den ersten beiden Komponenten können 87% der Varianz erklärt werden. Mit 6 Komponenten sind es schon 99%.
+```
+
+
+
+
+
+
+
+[x] Plotten wir die ersten beiden Hauptkomponenten als Scatterplot und "färben" nach der Klasse. Sind die Klassen separiert?
+```{r}
+pca_df <- as.data.frame(cancer.pca$x)
+ggplot(pca_df, aes(x=PC1, y=PC2, col=data$class)) + geom_point(alpha=0.5)
+
+# Die Klassen sind nicht sehr gut separiert. Dies ist auch klar, da die ersten beiden Komponenten nur 87% der Varianz erklären.
+```
+
+
+
+[x] Um zu veranschaulichen, welche Variablen den größten Einfluss auf die ersten 2 Komponenten haben (Verwenden wir `autoplot` aus dem ggfortify package)
+```{r}
+autoplot(cancer.pca, data = data,  colour = 'class', loadings = FALSE, loadings.label = TRUE, loadings.colour = "blue")
+```
+
+
+
+[x] Als Abschluss verwenden wir ggpairs um die ersten 3 Komponenten zu visualisieren. Was können wir daraus ablesen?
+
+```{r, eval=F}
+# Code intentionally Given
+df_pcs <- cbind(as_tibble(data$class), as_tibble(cancer.pca$x))
+GGally::ggpairs(df_pcs, columns = 2:4, ggplot2::aes(color = value))
+
+# Wir können ablesen, dass PC1 und PC2 die Klassen "b" und "m" nur zu einem gewissen Teil trennen. Dies lässt sich auch wieder damit erklären, dass die durch diese beiden Komponenten erklärte Varianz nicht ausreichend groß ist.
+```
+
+
+
+
+
+----------------------------
+
+# Clustering
+
+[] Aufgabe 3 K-Means: Standardisiertes vs. nicht standardisiertes Clustering [5 Punkte]
+
+```{r}
+set.seed(1910837830)
+max_k <-20
+kmean_withinss <- function(k) {
+  cluster <- kmeans(data[2:ncol(data)], k)
+  return (cluster$tot.withinss)
+}
+
+wisc.km <- kmeans(data[2:ncol(data)], centers = 2, nstart = 20)
+
+# [x] Berechne die Ratio der Sum of Squares (Innerhalb/Zwischen Clustern) für k=1,2,3,4,5,6,7
+str(wisc.km$withinss)
+kmean_withinss_1 <- kmean_withinss(2)
+
+# [x] Erstelle einen Screeplot - Wo liegt der "Ellbogen"
+wss <- sapply(2:max_k, kmean_withinss)
+elbow <-data.frame(2:max_k, wss)
+ggplot(elbow, aes(x = X2.max_k, y = wss)) + geom_point() + geom_line() + scale_x_continuous(breaks = seq(1, 20, by = 1))
+
+# Für k = 8 fängt die Kurve an sich abzuflachen, deshalb ist das optimale k bei 8.
+
+```
+
+```{r}
+set.seed(1910837830)
+
+max_k <-20
+kmean_withinss <- function(k) {
+  cluster <- kmeans(scale(data[2:ncol(data)]), k)
+  return (cluster$tot.withinss)
+}
+
+# noch einmal für scalierte daten
+wdbc_scaled <- kmeans(scale(data[2:ncol(data)]), centers = 2, nstart = 20)
+
+# [x] Berechne die Ratio der Sum of Squares (Innerhalb/Zwischen Clustern) für k=1,2,3,4,5,6,7
+str(wdbc_scaled$withinss)
+
+# [x] Erstelle einen Screeplot - Wo liegt der "Ellbogen"
+wss <- sapply(2:max_k, kmean_withinss)
+elbow <-data.frame(2:max_k, wss)
+ggplot(elbow, aes(x = X2.max_k, y = wss)) + geom_point() + geom_line() + scale_x_continuous(breaks = seq(1, 20, by = 1))
+
+# Nach skalieren der Daten sieht es so aus, als könnte jeder neue Faktor das Model verbessern. Erst bei k = 15 fängt die Kurve an flacher zu werden.
+
+
+# Interpretiere beide Varianten bei k=2 (warum wohl?)
+kmean_withinss_2 <- kmean_withinss(2)
+kmean_withinss_1
+kmean_withinss_2
+
+# Die Sum of Squares zwischen den Clutern ist beim ersten Modell viel höher als beim zweiten.
+# Wir wählen k = 2 weil es zwei unterschiedliche Klassen gibt.
+```
+
+
+
+
+
+
+## Aufgabe 4 Hierarchisches Clustering [5 Punkte]
+
+[x] Erstelle die Distanz-Matrix für unskalierte und skalierte Daten. Verwende `hclust` um cluster zu erstellen.
+
+```{r}
+# distance matrix - (we use euclidean)
+dist_mat <- dist(scale(data[2:ncol(data)]), method = 'euclidean')
+
+# create a "plain" hclust()-model for both matrices
+hclust_avg <- hclust(dist_mat, method = 'average')
+
+# plot the resulting hierarchical clusters and interpret them
+plot(hclust_avg)
+
+```
+
+
+
+[] Versuche "deinen" idealen Hierarchical Cluster zu bauen + begründe diesen. (Versuche verschiedene Distanz-Metriken, und verschiedene Inter-Cluster-Distanzen)
+```{r}
+dist_mat_1 <- dist(scale(data[2:ncol(data)]), method = 'euclidean')
+hclust_avg_1 <- hclust(dist_mat_1, method = 'average')
+
+cut_avg_1 <- cutree(hclust_avg, 2)
+table(cut_avg_1, diagnosis)
+
+dist_mat_2 <- dist(scale(data[2:ncol(data)]), method = 'euclidean')
+hclust_avg_2 <- hclust(dist_mat_2, method = 'average')
+
+cut_avg_2 <- cutree(hclust_avg, 5)
+table(cut_avg_2, diagnosis)
+
+dist_mat_3 <- dist(scale(data[2:ncol(data)]), method = 'euclidean')
+hclust_avg_3 <- hclust(dist_mat_3, method = 'average')
+
+cut_avg_3 <- cutree(hclust_avg, 10)
+table(cut_avg_3, diagnosis)
+
+# Bei k = 2 performt das Modell am besten.
+```
+
+
+[x] Verwende `cutree()` um 4 Cluster zu bilden. 
+```{r}
+cut_avg <- cutree(hclust_avg, k = 4)
+table(cut_avg, diagnosis)
+```
+
+
