@@ -1,5 +1,6 @@
 {
-	"name": "Frank Kane",
+	"firstName": "Frank",
+	"lastName": "Kane",
 	"currentPosition": "Founder of Sundog Software, LLC",
 	"locationCountry": "Winter Springs",
 	"locationState": "Florida",
@@ -24,6 +25,22 @@
 			"locationCountry": "Winter Springs",
 			"locationState": "Florida",
 			"description": "Sundog Education is Sundog Software's new brand for online learning. Our mission is to make highly valuable skills in machine learning, big data, AI, and data science accessible at prices anyone in the world can afford. Our current online courses have reached over 300,000 students worldwide."
+		},
+		{
+			"position": "Founder",
+			"company": "Sundog Software LLC",
+			"startMonth": 1,
+			"startYear": 2006,
+			"endMonth": null,
+			"endYear": null
+		},
+		{
+			"position": "Sr. Manager Technology",
+			"company": "IMDb.com",
+			"startMonth": 2,
+			"startYear": 2010,
+			"endMonth": 6,
+			"endYear": 2012
 		}
 	],
 	"education": [
@@ -50,13 +67,19 @@
 	"skills": [
 		{
 			"name": "Software Engineering",
-			"confirmedBy": [
-				123123,
-				123134,
-				1345135,
-				135135,
-				135135
-			]
+			"confirmedBy": 129
+		},
+		{
+			"name": "Software Development",
+			"confirmedBy": 99
+		},
+		{
+			"name": "OpenGL",
+			"confirmedBy": 86
+		},
+		{
+			"name": "OpenGL",
+			"confirmedBy": 86
 		}
 	]
 }

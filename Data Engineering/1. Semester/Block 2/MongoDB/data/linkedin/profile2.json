@@ -1,10 +1,12 @@
 {
-	"name": "Bill Gates",
+	"firstName": "Bill",
+	"lastName": "Gates",
 	"currentPosition": "Co-chair, Bill & Melinda Gates Foundation",
 	"locationCountry": "Seattle",
 	"locationState": "Washington",
 	"contacts": 24979994,
 	"info": "Co-chair of the Bill & Melinda Gates Foundation. Microsoft Co-founder. Voracious reader. Avid traveler. Active blogger.",
+	"influencer": true,
 	"activities": [
 		{
 			"image": "https://media-exp1.licdn.com/dms/image/C4E22AQF_TejousAHTg/feedshare-shrink_160/0?e=1585180800&v=beta&t=FWmHUWNQWPBT1390GSl_U3mMz5QnJPu-oPaeScOWh0c",
@@ -20,6 +22,14 @@
 			"company": "Billl & Melinda Gates Foundation",
 			"startMonth": null,
 			"startYear": 2000,
+			"endMonth": null,
+			"endYear": null
+		},
+		{
+			"position": "Co-Founder",
+			"company": "Microsoft",
+			"startMonth": null,
+			"startYear": 1975,
 			"endMonth": null,
 			"endYear": null
 		}
