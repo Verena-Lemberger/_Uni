@@ -1,3 +1,5 @@
+- prerequisits: python -m nltk.downloader al
+
 
 - [] extract relevant data from html
 - [] create 15 different questions
@@ -8,11 +10,12 @@
 - [] add stopwords package
 
 - [] questions:
-	- Wie viele Kapitel gibt es im Buch?
-	- Wer ist der Author von Moby Dick?
-	- Sortierte Liste aller Wörer pro Kapitel erstellen und Wort raten
-	- Sortierte Liste aller Wörer im ganzen Buch erstellen und Wort raten
-	- Intro mit User spielen
-		- Wer ist der Author, wie viele Kapitel gibt es, Beispiel Fragen durchgehen, ...
-		- Danach ein File auf Disk speichern um zu speichern, dass das Intro gespielt wurde
+	[x] Wie viele Kapitel gibt es im Buch?
+	[x] Wer ist der Author von Moby Dick?
+	[] Was ist das häufigste Wort im ganzen Buch?
+	[] Sortierte Liste aller Wörer pro Kapitel erstellen und Wort raten
+	[] Sortierte Liste aller Wörer im ganzen Buch erstellen und Wort raten
+	[] Intro mit User spielen
+		[] Wer ist der Author, wie viele Kapitel gibt es, Beispiel Fragen durchgehen, ...
+		[] Danach ein File auf Disk speichern um zu speichern, dass das Intro gespielt wurde
 
