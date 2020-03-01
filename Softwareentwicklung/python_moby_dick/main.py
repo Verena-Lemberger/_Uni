@@ -7,6 +7,7 @@ from Setup import Init
 from Game import PlayGame
 from HTMLParser import Parser
 
+# helper function which is used to play the first round
 def playFirstRound(parser, setup):
 	points = 0
 	questions = [
@@ -109,17 +110,3 @@ def beginGame():
 	g.start()
 
 beginGame()
-
-
-# # get the data
-# data = open("mobydick.html","r")
-# # load data into bs4 and get the text
-# htmlSoup = BeautifulSoup(data, "html.parser")
-# textSoup = htmlSoup.text
-
-# chapters = getChapters(htmlSoup)
-# mostCommonWordsInChapter = getMostCommonWordsInChapter(textSoup, 50)
-
-# # replace 100 with the real number of chapters
-# numberOfChapters = 100
-# print(getFiveQuestions(textSoup, numberOfChapters))

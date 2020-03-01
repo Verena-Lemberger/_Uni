@@ -19,6 +19,7 @@ def HTMLFileExists():
 class Init:
 	def __init__(self):
 		# check if the setup file exists. If yes, the user has already completed the setup
+		# the setup file is used to store the info if the user already played the first round or not
 		self._setupComplete = getSetupFile()
 		# check if the html file already exists
 		self._mobyHTMLExists = HTMLFileExists()

@@ -15,7 +15,7 @@ class WordParser:
 		stopWords = stopwords.words('english')
 
 		# add custom stopwords
-		customStopWords = ["like", "upon", "would", "though", "long", "sill", "great", "said", "must", "seemed", "last", "look", "chapter", "thing", "still", "come", "white", "thou", "stubb"]
+		customStopWords = ["like", "upon", "would", "though", "long", "sill", "great", "said", "must", "seemed", "last", "look", "chapter", "thing", "still", "come", "white", "thou", "stubb", "marginleft", "marginright", "margin", "padding"]
 		for word in customStopWords:
 			stopWords.append(word)
 

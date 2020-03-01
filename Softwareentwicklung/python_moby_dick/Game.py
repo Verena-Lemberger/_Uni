@@ -6,11 +6,9 @@ from WordExtractor import WordParser
 
 # Start the gameplay
 # Ask two types of different questions:
-#	1. how often a word occurs in a chapter or in the whole book
-#	2. what word occurs more often
-#	-> use the Parser.getMostCommonWords function to extract the most common words
-# 	-> create a new Parser function to extract the most common words from a chapter -> function takes the chapter number of 	does the rest automatically
-# Create 5 random questions and ask the user the questions
+#	1. how often a word occurs in a chapter (4 choices)
+#	2. what word occurs more often in a chapter (2 choices)
+# Create 5 random questions and present them to the user
 # Check how many questions the users answered correctly and print the number of correct answers to the console
 
 class PlayGame:
@@ -24,19 +22,20 @@ class PlayGame:
 	def getRandomNumber(self):
 		return random.randrange(2)
 
+	# make sure the questions are always ordered randomly
 	def getRandomQuestionAssignment(self, correctAnswer, word1, word2, word3):
-		number = random.randrange(0,4)
+		number = random.randrange(0,3)
 		if(number == 0):
 			return [word1, correctAnswer, word2, word3]
-		if(number == 2):
+		if(number == 1):
 			return [word1, word2, correctAnswer, word3]
-		if(number == 3):
+		if(number == 2):
 			return [word1, word2, word3, correctAnswer]
 		return [correctAnswer, word1, word2, word3]
 
 
+	# get the table of contents and extract the number of chapters
 	def getChapters(self, html):
-		# get the toc and extract the number of chapters
 		chapters = []
 		tocElements = html.find_all("p", { "class": "toc" })
 		for element in tocElements:
@@ -44,15 +43,20 @@ class PlayGame:
 				chapters.append(element.text.replace("\n","",5).strip())
 		return chapters
 
+	# helper function to get the text for each chapter
 	def getMostCommonWordsInChapter(self, text, chapter):
 		chapters = self.getChapters(self.html)
 		chapter = text.split(chapters[chapter-1])[-1].split(chapters[chapter])[0]
 		return WordParser(chapter).getMostCommonWords()
 
+	# creates the game questions
 	def getGameQuestions(self, text, numberOfChapters):
 		chapterNumber = random.randrange(numberOfChapters)
 		mostCommonWordsInChapter = self.getMostCommonWordsInChapter(text, chapterNumber)
 		if self.getRandomNumber() == 0:
+			# Get the most common word from the chapter (chapterNumber)
+			# Get the 3 other random words from that list
+			# build a dict with the questions and the answer and return it
 			randNumber1 = random.randrange(2, 99)
 			randNumber2 = random.randrange(2, 99)
 			randNumber3 = random.randrange(2, 99)
@@ -60,10 +64,6 @@ class PlayGame:
 			word2 = mostCommonWordsInChapter[randNumber1][0].lower()
 			word3 = mostCommonWordsInChapter[randNumber2][0].lower()
 			word4 = mostCommonWordsInChapter[randNumber3][0].lower()
-
-			# Get the most common word from the chapter (chapterNumber)
-			# Get the 3 other random words from that list
-			# build a dict with the questions and the answer and return it
 			return {
 				"correctAnswer": mostCommonWord,
 				"question": "What is the most common word in Chapter {}?".format(chapterNumber),
