@@ -27,7 +27,7 @@ class WordParser:
 
 		# remove punctuation from each word
 		t = str.maketrans('', '', string.punctuation)
-		words = [w.translate(t) for w in tokens]
+		words = [w.translate(t).lower() for w in tokens]
 
 		# remove tokens that are not alphabetic
 		words = [word for word in words if word.isalpha()]

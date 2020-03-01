@@ -5,7 +5,8 @@ class MobyScraper:
 
 	def getMoby(self):
 		# get the data
-		print("starting request ...")
+		print("You didn't download the book moby dick yet. We need to do this before we begin.")
+		print("Starting download ...")
 		data = requests.get("https://www.gutenberg.org/files/2701/2701-h/2701-h.htm")
 
 		# load data into bs4

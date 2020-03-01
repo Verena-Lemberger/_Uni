@@ -1,0 +1,5 @@
+[packages]
+requests = "*"
+inquirer = "*"
+beautifulsoup4 = "*"
+Counter = "*"

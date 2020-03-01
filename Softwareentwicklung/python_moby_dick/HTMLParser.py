@@ -3,12 +3,15 @@ from WordExtractor import WordParser
 
 
 def getHTML():
-	# get the data
-	data = open("mobydick.html","r")
-	# load data into bs4
-	htmlSoup = BeautifulSoup(data, "html.parser")
-	# return the html
-	return htmlSoup
+	try:
+		# get the data
+		data = open("mobydick.html","r")
+		# load data into bs4
+		htmlSoup = BeautifulSoup(data, "html.parser")
+		# return the html
+		return htmlSoup
+	except:
+		pass
 
 
 class Parser:

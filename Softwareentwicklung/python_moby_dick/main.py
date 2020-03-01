@@ -32,7 +32,7 @@ def playFirstRound(parser, setup):
 		),
 		# ask what word occurs more often "captain" or "ship"
 		inquirer.List('round5',
-			message="What word occurs more often, 'ship' or 'boat'?",
+			message="What word occurs more often, '{}' or '{}'?".format(parser.mostCommonWordsInBook[1][0], parser.mostCommonWordsInBook[2][0]),
 			choices=[parser.mostCommonWordsInBook[1][0], parser.mostCommonWordsInBook[4][0]]
 		),
 		]
@@ -63,10 +63,7 @@ def playFirstRound(parser, setup):
 		print("Hmm, looks like you need more practice ... :(")
 	print("You answered {} of 5 questions correctly.".format(points))
 	print("\n\n")
-	inquirer.List('playGame',
-		message="Now that you are ready, let's begin!",
-		choices=["Yes", "Hell Yes!"]
-	)
+	time.sleep(2)
 	setup.createSetupFile()
 	return True
 
@@ -75,7 +72,7 @@ class Main:
 	def __init__(self):
 		self.test = "test"
 		self.setup = Init()
-		self.parser = Parser()
+		self.parser = False
 		self.setupComplete = self.setup.checkSetup()
 		self.HTMLExists = self.setup.checkHTML()
 
@@ -84,16 +81,25 @@ class Main:
 		if not self.HTMLExists:
 			print("Before we start we need to prepare some things ...")
 			self.setup.createHTMLFile() # create html file
+			self.HTMLExists = True
 			self.start() # call start method again to go through the whole process
 		elif not self.setupComplete:
+			if(not self.parser):
+				self.parser = Parser()
 			print("\n")
 			print("First time playing, hmm?")
 			print("Before we begin, let's go through some sample questions.")
 			time.sleep(3)
-			self.playFirstRound(self.parser, self.setup)
+			playFirstRound(self.parser, self.setup)
 			self.setupComplete = True
+			print("That's it for your first round. Ready for a real game?")
+			time.sleep(2)
+			print("\n")
+			print("\n")
 			self.start() # call start method again to go through the whole process
 		else:
+			if(not self.parser):
+				self.parser = Parser()
 			return PlayGame(self.parser.html, self.parser.text, self.parser.numberOfChapters).start()
 
 
