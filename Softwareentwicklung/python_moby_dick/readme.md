@@ -13,12 +13,16 @@ Your job is to answer at least 3 out of 5 questions correctly to win the game.
 
 To play the game you must have at least Python 3 (we used version 3.7) installed. Additionally you have to do the following steps:
 
-1. install pipenv (e.g. "brew install pipenv")
+1. run "pip3 install --user -U nltk"
 2. run "python -m nltk.downloader all" to download the necessary nltk packages (this may take a while)
-3. run "pipenv install" to install all the other necessary dependencies
-4. run python main.py to start the game
-
-
+3. install all the other necessary dependencies
+	- pip3 install requests
+	- pip3 install inquirer
+	- pip3 install beautifulsoup4
+	- pip3 install Counter
+	- pip3 install names
+	- pip3 install stop_words
+4. run "python main.py" to start the game
 
 ## Team Members
 - Sebastian Schäffer
