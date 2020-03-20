@@ -1,0 +1,12 @@
+Data Set Information:
+
+Human Height and Weight are mostly hereditable, but lifestyles (e.g., regular strenuous physical exercise), diet, health and environmental factors also play a role in determining individual's physical characteristics. The dataset below contains 1035 records of heights and weights for some current and recent Major League Baseball (MLB) Players. These data were obtained from different resources (e.g., IBM Many Eyes and the references below). See also the 25,000 records of adolescent height and weight.
+
+Variables:
+
+- Name: MLB Player Name
+- Team: The Baseball team the player was a member of at the time the data was acquired
+- Position: Player field position
+- Height(inches): Player height in inches
+- Weight(pounds): Player weight in pounds
+- Age: Player age at time of record

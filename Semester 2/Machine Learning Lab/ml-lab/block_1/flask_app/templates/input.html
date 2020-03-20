@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>{{ title }}</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <style>
+            .footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px; /* Set the fixed height of the footer here */
+            line-height: 60px; /* Vertically center the text there */
+            background-color: #f5f5f5;
+            }
+            .mike {
+                margin-top:5px;
+                margin-bottom:5px;
+            }
+        </style>
+    </head>
+    <body>
+
+        <main role="main" class="container">
+            <h1 class="mt-5">{{ title }}</h1>
+            <p class="lead">
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+            </p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc,
+            </p>
+            <form action="/predict" method=get>
+
+                Longitude <input name="longitude" value="-122.23" class="form-control mike">
+                Latitude <input name="latitude" value="37.88" class="form-control mike">
+                Housing Median Age <input name="housing_median_age" value="41.0" class="form-control mike">
+                Total Rooms <input name="total_rooms" value="880.0" class="form-control mike">
+                Total Bedrooms <input name="total_bedrooms" value="129.0" class="form-control mike">
+                Population <input name="population" value="322.0" class="form-control mike">
+                Housholds <input name="households" value="126.0" class="form-control mike">
+                Median Income <input name="median_income" value="8.3252" class="form-control mike">
+                 
+                Ocean Proximity
+                <select id="ocean_proximity" name="ocean_proximity" class="form-control mike">
+                    <option value="<1H OCEAN"><1H OCEAN</option>
+                    <option value="INLAND">INLAND</option>
+                    <option value="NEAR OCEAN">NEAR OCEAN</option>
+                    <option value="NEAR BAY">NEAR BAY</option>
+                    <option value="ISLAND">ISLAND</option>
+                </select>
+
+                <button class="btn btn-lg btn-primary btn-block mike" type="submit">Submit</button>
+                <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
+            </form>
+        </main>
+    </body>
+</html>

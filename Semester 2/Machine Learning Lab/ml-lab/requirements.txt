@@ -1,0 +1,12 @@
+jupyter
+jupyter_contrib_nbextensions
+pandas
+matplotlib
+seaborn
+bokeh
+pandas
+sklearn
+numpy
+tensorflow
+flask
+dill
