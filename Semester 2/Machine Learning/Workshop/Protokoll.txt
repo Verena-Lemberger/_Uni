@@ -6,8 +6,8 @@ Ziel war es ein Modell zu entwickeln, welches den MNIST Datensatz (Modified Nati
 ## Beschreibung der erzielten Ergebnisse bzw. des Lösungsweges
 Wir haben uns darauf geeinigt verschiedene Modelle zu entwickeln und deren Accuracy sowie Komplexität miteinander zu vergleichen. Sebastian hat einen Decision-Tree, einen SVM-Klassifikator sowie eine Lösung mittels KNN erstellt. Alexander und Sascha haben verschiedene Neuronale-Netze entwickelt.
 
-Die Modelle von Sebastian erreichten überraschenderweise gute Ergebnisse mit einer Accuracy von teilweise knapp 90% bei einer niedrigen Komplexität. Die einfachen Neuronale-Netze und CNNs erreichen eine Accuracy zwischen 90% und 93%. Unser komplexestes CNN erreicht eine Accuracy von 98% - 99%. 
+Die Modelle von Sebastian erreichten überraschenderweise gute Ergebnisse mit einer Accuracy von teilweise knapp 90% bei einer niedrigen Komplexität. Die einfachen Neuronale-Netze und CNNs erreichen eine Accuracy zwischen 90% und 93%. Unser komplexestes CNN erreicht eine Accuracy von 98% - 99%.
 
 ## Diskussion der Ergebnisse
 Wie erwähnt erzielen komplexere Modelle auch bessere Ergebnisse. Bei unserer Aufgabenstellung ging es um die korrekte Klassifikation der Zahlen. In diesem Fall ist es unser Ziel eine möglichst hohe Accuracy zu erreichen.
-Mit diesem Datensatz war es relativ dies zu erreichen, allerdings ist das in der Realität nicht immer der Fall. Hier muss man sich immer die Frage stellen inwieweit sich der Mehraufwand und die höhere Komplexität bei der Entwicklung der Modelle lohnen bessere Ergebnisse zu bekommen.  
+Mit diesem Datensatz war es relativ einfach dies zu erreichen, allerdings ist das in der Realität nicht immer der Fall. Hier muss man sich immer die Frage stellen inwieweit sich der Mehraufwand und die höhere Komplexität bei der Entwicklung der Modelle lohnen um bessere Ergebnisse zu bekommen.
