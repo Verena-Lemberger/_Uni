@@ -30,8 +30,8 @@ for i in range(0, 21000):
 print("Accuracy for Decision Tree:", round(((count/21000)*100), 1))
 
 # #Ausgabe des Bildes basierend auf dem ursprünglichen Datensatzes
-# d = xtest[10] #Verwendung von Eintrag 10 des Test-Datensatzes (="2")
-# d.shape = (28, 28) #Vorgabe zur Größe des Bildes
-# plt.imshow(255-d, cmap='gray')
-# print(clf.predict([xtest[10]]))
-# plt.show()
+d = xtest[10]  # Verwendung von Eintrag 10 des Test-Datensatzes (="2")
+d.shape = (28, 28)  # Vorgabe zur Größe des Bildes
+plt.imshow(255-d, cmap='gray')
+print(clf.predict([xtest[10]]))
+plt.show()
