@@ -1,0 +1,222 @@
+---
+title: "Übung 03"
+author: "Sascha Metzger - 1910837830 - DSIA Algorithmik & Statistik, SS 2020"
+date: '2019-01-01 (updated: `r Sys.Date()`)'
+output:
+  html_document:
+    df_print: paged
+urlcolor: cyan
+---
+
+```{r options, include = FALSE}
+knitr::opts_chunk$set(fig.align = "center")
+```
+
+Bitte um Beachtung der [Übungs-Policy](https://algo2-lab.netlify.com/%C3%BCbungs-policy.html) für genaue Anweisungen und einige Beurteilungsnotizen. Fehler bei der Einhaltung ergeben Punktabzug.
+
+Angedachte Bearbeitungszeit: ca. 4 Std.
+
+***
+
+# Aufgabe 1 (Computation Time)
+
+**[8 points]** Für diese Übung werden wir Daten mittels Simulation erstellen und dann beurteilen, wie gut bestimmte Methoden funktionieren. Verwenden Sie den folgenden Code, um ein Trainings- und Testdatensatz zu erstellen.
+
+```{r, message = FALSE, warning = FALSE}
+library(mlbench)
+set.seed(42)
+sim_trn = mlbench.spirals(n = 2500, cycles = 1.5, sd = 0.125)
+sim_trn = data.frame(sim_trn$x, class = as.factor(sim_trn$classes)) %>% tibble()
+sim_tst = mlbench.spirals(n = 10000, cycles = 1.5, sd = 0.125)
+sim_tst = data.frame(sim_tst$x, class = as.factor(sim_tst$classes)) %>% tibble()
+```
+
+Die Trainingsdaten sind unten dargestellt, wobei die Farben die Variable "Klasse" = Response sind.
+
+```{r, fig.height = 5, fig.width = 5, echo = FALSE}
+ggplot(sim_trn, aes(x=X1, y=X2, col=class))+geom_point()
+```
+
+Bevor Sie fortfahren, stelle einen Seed ein, der deiner StudentenID entspricht.
+
+```{r}
+uin = 1910837830
+set.seed(uin)
+```
+
+Wir werden das Folgende verwenden, um eine 5-fache Kreuzvalidierung für die Verwendung mit `train()` von `caret` zu definieren.
+
+```{r, message = FALSE, warning = FALSE}
+library(caret)
+cv_5 = trainControl(method = "cv", number = 5)
+
+# tidymodels
+library(tidymodels)
+rec_cv_5 = vfold_cv(sim_trn, v=5)
+```
+
+Wir tunen nun zwei Modelle mit `train()`. Zuerst eine logistische Regression mit `glm`. (Dies ist eigentlich nicht "getunt", da es keine zu tunenden Parameter gibt, aber wir verwenden `train()`, um eine Kreuzvalidierung durchzuführen.) Zweitens tunen wir einen einzelnen Entscheidungsbaum mit `rpart`.
+
+Wir speichern die Ergebnisse in `sim_glm_cv` bzw. `sim_tree_cv`, aber wir verpacken auch beide Funktionsaufrufe mit `system.time()`, um aufzuzeichnen, wie lange der Tuning-Prozess für jede Methode dauert.
+
+```{r, message = FALSE, warning = FALSE}
+glm_cv_time = system.time({
+  sim_glm_cv  = train(
+    class ~ .,
+    data = sim_trn,
+    trControl = cv_5,
+    method = "glm")
+})
+
+tree_cv_time = system.time({
+  sim_tree_cv = train(
+    class ~ .,
+    data = sim_trn,
+    trControl = cv_5,
+    method = "rpart")
+})
+
+# Tidymodels (optional)
+
+glm_cv_tidy = system.time({
+  # recipe
+  # train
+})
+
+tree_cv_tidy = system.time({
+  # recipe
+  # train
+})
+
+```
+
+Wir sehen, dass beide Methoden durch Cross-Validierung in ähnlicher Zeit optimiert werden.
+
+```{r}
+glm_cv_time["elapsed"]
+tree_cv_time["elapsed"]
+```
+
+```{r, message = FALSE, warning = FALSE, echio = FALSE}
+library(rpart.plot)
+rpart.plot(sim_tree_cv$finalModel)
+```
+
+Wiederholen Sie die obige Analyse mit einem Random Forest, zweimal. Verwenden Sie beim ersten Mal die 5-fache Kreuzvalidierung. Beim zweiten Mal optimieren wir das Modell mit OOB-Samples. Wir haben hier nur zwei Prädiktoren, also verwenden Sie für beide das folgende Tuning-Grid.
+
+```{r}
+rf_grid = expand.grid(mtry = c(1, 2))
+rf_tidy = rand_forest(mtry=tune()) %>% 
+  set_mode("classification") %>% 
+  set_engine("randomForest")
+
+rf_ctrl <- control_grid()
+
+#rf_tidy %>% tune_grid()
+```
+
+Erstellen Sie eine Tabelle, in der die Ergebnisse dieser vier Modelle zusammengefasst sind. (Logistik mit CV, Baum mit CV, RF mit OOB, RF mit CV). Berichte:
+
+- Gewählter Wert des Tuning-Parameters (falls zutreffend)
+- Verstrichene Abstimmzeit
+- Resampled (CV oder OOB) Genauigkeit
+- Testgenauigkeit
+
+```{r}
+result_1 <- tribble(~model, ~parameter, ~training_time, ~resampled_accuracy, ~test_accuracy) # TODO fill the results (will be tested)
+```
+
+
+
+# Aufgabe 2 (Predicting Baseball Salaries)
+
+**[7 points]** Für diese Frage werden wir das `Gehalt` von `Hitters` vorhersagen. (`Hitters` ist auch der Name des Datensatzes.) Wir entfernen zuerst die fehlenden Daten:
+
+```{r}
+library(ISLR)
+Hitters = na.omit(Hitters)
+```
+
+Nachdem du `uin` auf Ihre StudentID umgestellt hast, verwende den folgenden Code, um die Daten aufzuteilen.
+
+```{r}
+uin = 123456789
+set.seed(uin)
+hit_split = initial_split(Hitters, p = 0.6, list = FALSE)
+hit_trn = hit_split %>% training()
+hit_tst = hit_split %>% testing()
+```
+
+Gehen wie folgt vor:
+
+- Tunen Sie ein verstärktes Baummodell mit dem folgenden Tuning-Grid und der 5-fachen Kreuzvalidierung.
+
+```{r}
+gbm_grid = expand.grid(interaction.depth = c(1, 2),
+                       n.trees = c(500, 1000, 1500),
+                       shrinkage = c(0.001, 0.01, 0.1),
+                       n.minobsinnode = 10)
+```
+
+- Tunen Sie einen Random Forest mit OOB Resampling und **allen** möglichen Werte von `mtry`. 
+
+Erstellen Sie eine Tabelle, in der die Ergebnisse von drei Modellen zusammengefasst sind:
+
+- Tuned boosted tree Model
+- Tuned random forest Model
+- Bagged tree Model
+
+Für jedes, Berichte:
+
+- Resampled RMSE
+- Test RMSE
+
+```{r}
+result_2 <- tribble(~model, ~train_rmse, ~test_rmse)
+```
+
+
+
+# Aufgabe 3 (Transforming der Response)
+
+**[5 points]** Dann fahren wir mit den Daten aus Übung 2 fort. Das Buch, ISL, schlägt vor, die Response "Salary", log-transformieren, bevor es in einen Random Forest passt. Ist das notwendig? Tunen Sie einen Random Forest neu, wie Sie es in Übung 2 getan haben, außer mit einer logarithmisch transformierten Response. Berichten Sie den Test RMSE sowohl für das nicht transformierte als auch für das transformierte Modell im Originalmaßstab der Antwortvariablen. 
+
+```{r, echo = FALSE}
+ggplot(hit_trn, aes(x=Salary))+geom_histogram(binwidth = 250)
+```
+
+```{r}
+result_3 <- tribble(~model, ~test_rmse_base, ~test_rmse_log)
+```
+
+
+# Aufgabe 4 (Concept Checks)
+
+**[1 point each]** Beantworte die folgenden Fragen auf der Grundlage deiner Ergebnisse aus den drei Übungen. 
+
+### Timing
+
+**(a)** Vergleichen Sie die Zeit, die für die Abstimmung der einzelnen Modelle benötigt wird. Ist der Unterschied zwischen dem OOB- und dem CV-Ergebnis für den Random Forest ähnlich, wie Sie es erwartet hätten?
+
+**(b)** Vergleiche den getunten Wert von `mtry` für jeden der getunten Random Forests. Wählen sie das gleiche Modell?
+
+**(c)** Vergleichen Sie die Testgenauigkeit der vier betrachteten Verfahren. Erläutere diese Ergebnisse kurz.
+
+### Salary
+
+**(d)** Berichte den eingestellten Wert von `mtry` für den Random Forest.
+
+**(e)** Erzeuge einen Plot, der die Tuningergebnisse für das Tuning des boosted tree model anzeigt.
+
+**(f)** Erzeuge einen Plot der Variable Importance für den tuned Random Forest.
+
+**(g)** Erzeuge einen Plot der Variable Importance für das tuned Boosted Tree Model.
+
+**(h)** Nach dem Random Forest, was sind die drei wichtigsten Prädiktoren?
+
+**(i)** Nach dem Boosted Model, was sind die drei wichtigsten Prädiktoren?
+
+### Transformation
+
+**(j)** Basierend auf diesen Ergebnissen, glauben Sie, dass die Transformation notwendig war?
+

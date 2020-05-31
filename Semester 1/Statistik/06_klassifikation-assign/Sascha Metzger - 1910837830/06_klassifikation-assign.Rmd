@@ -1,0 +1,328 @@
+---
+title: "Klassifikation"
+author: "Sascha Metzger - 1910837830"
+date: '2019-01-01 (updated: `r Sys.Date()`)'
+subtitle: Algorithmik und Statistik 1
+institute: FH Kufstein
+---
+
+Bitte um Beachtung der [Übungs-Policy](https://weblearn.fh-kufstein.ac.at/mod/page/view.php?id=64482) für genaue Anweisungen und einige Beurteilungsnotizen. Fehler bei der Einhaltung ergeben Punktabzug.
+
+```{r setup}
+library(statistics4ds)
+library(tidyverse)
+library(plotly)
+library(MASS)
+library(caret)
+library(knitr)
+library(kableExtra)
+library(e1071)
+library(nnet)
+library(ellipse)
+```
+
+```{r}
+# helper function to caluculate the rmse for a knn
+calc_err = function(actual, predicted) {
+  mean(actual != predicted)
+}
+
+# import data
+weatherAUS = read.csv("data/weatherAUS.csv")
+
+wisc_trn = read.csv("data/wisc-trn.csv")
+wisc_tst = read.csv("data/wisc-tst.csv")
+```
+
+
+# Aufgabe 1: Krebserkennung mit KNN [3 Punkte]
+
+Für diese Übung werden wir Daten aus [`wisc-trn.csv`](wisc-trn.csv) und [`wisc-tst.csv`](wisc-tst.csv) verwenden, die jeweils Zug- und Testdaten enthalten. Dies ist eine Modifikation des Brustkrebs-Wisconsin-(Diagnose-)Datensatzes aus dem UCI Machine Learning Repository. Es wurden nur die ersten 10 Merkmalsvariablen bereitgestellt.
+
+- [UCI](https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic))
+- [Data Detail](https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.names)
+
+Sie sollten erwägen, die Antwort als Faktorvariable zu erzwingen. 
+
+Betrachten Sie zwei verschiedene Vorverarbeitungs-Setups:
+
+- **Setup 1**
+    - Numerische Variablen nicht skaliert. 
+- **Setup 2**
+    - Numerische Variablen werden auf den Mittelwert 0 und die Standardabweichung 1 skaliert.
+
+Für jeden Aufbau sind KNN-Modelle mit Werten von `k` von `1` bis `200` zu trainieren. Dabei werden nur die Variablen `Radius`, `Symmetrie` und `Textur` verwendet. Berechnen Sie für jede dieser Größen den Klassifizierungsfehler der Prüfung. Diese Ergebnisse sind in einer einzigen Darstellung zusammenzufassen, die den Prüffehler als Funktion von `k` darstellt. (Die Darstellung hat zwei "Kurven", eine für jeden Aufbau.) Ihre Darstellung sollte visuell ansprechend und gut beschriftet sein und eine Legende enthalten.
+
+```{r}
+# seed
+set.seed(1910837830)
+
+wisc_trn$class = as.factor(wisc_trn$class)
+wisc_tst$class = as.factor(wisc_tst$class)
+
+# k
+k <- 1:200
+
+# define model setups
+wisc_knn_form_1 = as.formula(class ~ radius + symmetry + texture)
+wisc_knn_form_2 = as.formula(class ~ scale(radius) + scale(symmetry) + scale(texture))
+
+# get 200 different modules (from 1 to 200)
+mod_1 = lapply(k, function(x) {knn3(wisc_knn_form_1, data = wisc_trn, k = x)})
+mod_2 = lapply(k, function(x) {knn3(wisc_knn_form_2, data = wisc_trn, k = x)})
+# get the predictions from each of our models
+pred_1 = lapply(mod_1, predict, newdata = wisc_tst, type = "class")
+pred_2 = lapply(mod_2, predict, newdata = wisc_tst, type = "class")
+# calculate the errors for all 200 predictions
+err_1 = sapply(pred_1, calc_err, actual = wisc_tst$class)
+err_2 = sapply(pred_2, calc_err, actual = wisc_tst$class)
+
+plot(k, err_1, type = "l", col = "green", xlab = "k", ylab = "error", ylim = c(0.08, 0.2))
+lines(k, err_2, col = "orange")
+legend("bottomright", c("mod_1", "mode_2"), lty = c(1, 1), col = c("green", "orange"))
+```
+
+
+# Aufgabe 2: Krebserkennung mit logistischer Regression [4 Punkte]
+
+Wir verwenden den Datensatz und Split von Aufgabe 1.
+
+Betrachten Sie eine additive logistische Regression, die *nur zwei Prädiktoren*, `Radius` und `Symmetrie`, berücksichtigt. Benutzen Sie dieses Modell zur Schätzung 
+
+$$
+p(x) = P(Y = \texttt{M} \mid X = x).
+$$
+
+Berichten Sie die Testsensitivität, Testspezifität und Testgenauigkeit für drei Klassifikatoren, wobei jeder einen anderen Grenzwert für die vorhergesagte Wahrscheinlichkeit verwendet:
+
+$$
+\hat{C}(x) =
+\begin{cases} 
+      M & \hat{p}(x) > c \\
+      B & \hat{p}(x) \leq c
+\end{cases}
+$$
+
+- $c = 0.1$
+- $c = 0.5$
+- $c = 0.9$
+
+Wir werden `M` (maligne) als die "positive" Klasse betrachten, wenn wir die Sensitivität und Spezifität berechnen. Fassen Sie diese Ergebnisse in einer einzigen gut formatierten Tabelle zusammen.
+
+```{r}
+wisc_trn$class = as.factor(wisc_trn$class)
+wisc_tst$class = as.factor(wisc_tst$class)
+
+# fit model
+wisc_glm = glm(class ~ radius + symmetry, data = wisc_trn, family = "binomial")
+
+# helper function, specific to glm function
+get_pred_glm = function(mod, data, res = "y", pos = 1, neg = 0, cut = 0.5) {
+  probs = predict(mod, newdata = data, type = "response")
+  ifelse(probs > cut, pos, neg)
+}
+
+# get predicted values for each cutoff
+pred_10 = get_pred_glm(wisc_glm, wisc_tst, res = "class", cut = 0.1, pos = "M", neg = "B")
+pred_50 = get_pred_glm(wisc_glm, wisc_tst, res = "class", cut = 0.5, pos = "M", neg = "B")
+pred_90 = get_pred_glm(wisc_glm, wisc_tst, res = "class", cut = 0.9, pos = "M", neg = "B")
+
+# create table for each cutoff
+tab_10 = table(predicted = pred_10, actual = wisc_tst$class)
+tab_50 = table(predicted = pred_50, actual = wisc_tst$class)
+tab_90 = table(predicted = pred_90, actual = wisc_tst$class)
+con_mat_10 = confusionMatrix(tab_10, positive = "M")
+con_mat_50 = confusionMatrix(tab_50, positive = "M")
+con_mat_90 = confusionMatrix(tab_90, positive = "M")
+
+metrics = rbind(
+  c(con_mat_10$overall["Accuracy"], 
+    con_mat_10$byClass["Sensitivity"], 
+    con_mat_10$byClass["Specificity"]),
+  c(con_mat_50$overall["Accuracy"], 
+    con_mat_50$byClass["Sensitivity"], 
+    con_mat_50$byClass["Specificity"]),
+  c(con_mat_90$overall["Accuracy"], 
+    con_mat_90$byClass["Sensitivity"], 
+    con_mat_90$byClass["Specificity"])
+)
+
+metrics
+
+rownames(metrics) = c("c = 0.10", "c = 0.50", "c = 0.90")
+kable_styling(kable(metrics, format = "html", digits = 3), full_width = FALSE)
+
+```
+
+
+# Aufgabe 3: Wetter Logistische Regression [4 Punkte]
+Kommen wir zur logistischen Regression. Sie werden wieder mit dem gleichen Wetterdatensatz arbeiten, aber das Ziel ist es, vorherzusagen, ob es morgen regnen wird. Wir haben Ihre Train- und Testsets für Sie erstellt. Ihre abhängigen Variablen sind die Features Humidity9am und Humidity3pm
+
+Achtung die Daten sind nicht normalisiert, skalieren Sie diese gegebenfalls und geben Sie die Auswirkung der Normalisierung an.
+
+## Anweisungen
+- Erstellen und fitten Sie das logistic_model mit train
+- Geben Sie die Genauigkeit Ihres Modells auf den Testdaten an.
+- Betrachten Sie die Modell-Koeffizienten, was können Sie daraus schließen?
+
+```{r}
+set.seed(1910837830)
+
+data_clean <- weatherAUS %>% na.omit()
+df <- data.frame(RainTomorrow = data_clean$RainTomorrow, Humidity9am = data_clean$Humidity9am, Humidity3pm = data_clean$Humidity3pm) 
+
+weatherAUS_n <- df[sample(nrow(data_clean), 1000),]
+trainIndex <- createDataPartition(df$RainTomorrow, p = .75,  list = FALSE,  times = 1)
+
+train <- df[ trainIndex, ] 
+test  <- df[-trainIndex, ] 
+
+logistic_model <- train(RainTomorrow ~ Humidity9am + Humidity3pm,  data=train, method="glm", family="binomial")
+```
+
+```{r}
+summary(logistic_model)
+logistic_model$results$Accuracy
+
+# Anhand es Outputs können wir sehen, dass die Variable Humidity3pm viel wichtiger ist als Humidity9am um vorherzusagen, ob es am nächsten Tag regnet. 
+# Dies ist auch intiituv, weil wir versuchen vorherzusagen ob es morgen regnet und hier natürlich die aktuelleren Daten viel besser sind dies zu tun. 
+```
+
+
+
+
+# Aufgabe 4: Wetter Klassifikation Evaluation [4 Punkte]
+In Fortführung der Evaluierungsmetriken werden Sie diesmal unser logistisches Regressionsmodell von früher evaluieren, mit dem Ziel, die binäre RainTomorrow-Feature mit Hilfe von 'Humidity'+"weiteren" vorherzusagen.
+
+Wir haben das Modell als `logistic_model` vorher definiert. Generieren und analysieren Sie die Confusionmatrix und berechnen Sie dann Präzision und Recall, bevor Sie eine Schlussfolgerung ziehen.
+
+## Anweisungen
+- Generieren und drucken Sie die Confusionmatrix für Ihr Modell; identifizieren Sie die Fehler Typ I und Typ II für die Testdaten.
+- Berechnen und geben Sie die Genauigkeit Ihres Models aus; können Sie erklären, warum Präzision in diesem Zusammenhang hilfreich ist?
+
+```{r}
+# Generate and output the confusion matrix
+mod <- predict(logistic_model, test)
+m <- confusionMatrix(mod, test[,"RainTomorrow"])
+
+# Compute and print the precision
+m
+m$byClass['Precision']
+
+# Compute and print the recall Recall = TruePositives / (TruePositives + FalseNegatives)
+m$byClass['Recall']
+
+# In diesem Modell gibt es 1895 Type I Fehler und 429 Type II Fehler. 
+# Die Precision gibt an wieviele Fälle richtig klassifiziert wurden und ist wichtig um zu erkennen wie gut unser Model ist (hier 84%). 
+# Der Recall hingegen gibt an, welcher Anteil der “Yes” richtig klassifiziert wurden (hier 95%). 
+# Die Accuracy des Modells ist 83 % und gibt an, wie viele Fälle wir korrekt klassifiziert haben. 
+```
+
+
+
+
+
+# Aufgabe 5 Wetter Klassifikatoren vergleichen [5 Punkte]
+
+Verwenden Sie die Daten in `weatherAUS`, nun mit allen Variablen, die Train- bzw. Testdaten enthalten (von vorher). Als Antwort ist `RainTomorrow` zu verwenden. Nach dem Import der Daten `RainTomorrow` als Faktor erzwingen, falls dies nicht bereits der Fall ist.
+
+Erstellen Sie ein Pair-Plot für die Trainingsdaten und trainieren Sie dann die folgenden Modelle unter Verwendung der beiden verfügbaren Prädiktoren:
+
+- 5 verschiedene Additive logistische Regression (Multinomiale Regression)
+  - **Intercept**: $\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0$
+  - **Simple**: $\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 \texttt{x}$
+  - **Multiple**:$\log \left( \frac{p(x)}{1 - p(x)} \right) = \beta_0 + \beta_1 x_1  + \beta_2 x_2  + \beta_3 x_3$
+  - **Additive**: Ein *additives* Modell mit (fast) allen ~5-10 verfügbaren Prädiktoren (Achtung: viele NAs, Faktoren z.B. Location)
+  - **Interaction**: Ein *Interaktions* Modell, das alle Begriffe erster Ordnung (von Additive) und alle möglichen Wechselwirkungen in beide Richtungen enthält
+  - LDA (mit aus Daten geschätzten Prioren)
+  - LDA mit Flachprior
+  - Naive Bayes (mit geschätzten Prioren aus den Daten)
+
+Berechnen Sie Test- und Trainfehlerraten für jedes Modell. Fassen Sie diese Ergebnisse in einer einzigen gut formatierten Tabelle zusammen.
+
+Interpretieren/visualisieren Sie die Modelle
+
+```{r}
+# define flat prior
+flat = c(1, 1) / 2
+
+data_clean <- weatherAUS %>% na.omit()
+data_clean$RainTomorrow = as.factor(data_clean$RainTomorrow)
+df <- data.frame(RainTomorrow = data_clean$RainTomorrow, Humidity9am = data_clean$Humidity9am, Humidity3pm = data_clean$Humidity3pm) 
+
+weatherAUS_n <- data_clean[sample(nrow(data_clean), 1000),]
+trainIndex <- createDataPartition(df$RainTomorrow, p = .75,  list = FALSE,  times = 1)
+
+train <- data_clean[ trainIndex, ] 
+test  <- data_clean[-trainIndex, ] 
+
+# fit models
+mod_intercept <- glm(RainTomorrow ~ 1, data = train, family = "binomial")
+mod_simple <- glm(RainTomorrow ~ RainToday, data = train, family = "binomial")
+mod_additive <- glm(RainTomorrow ~ Evaporation + MinTemp + Sunshine + Humidity3pm + Pressure3pm + RainToday, data = train, family = "binomial")
+mod_interaction <- glm(RainTomorrow ~ (Evaporation + MinTemp + Sunshine + Sunshine + Humidity3pm + Pressure3pm + RainToday)^2 , data = train, family = "binomial")
+
+mod_multiple <- glm(RainTomorrow ~  Humidity9am + Humidity3pm + Pressure9am + Pressure3pm, data=train, family="binomial")
+mod_lda <- lda(RainTomorrow ~ Humidity9am + Humidity3pm + Pressure9am + Pressure3pm, data=train)
+mod_lda_flat <- lda(RainTomorrow ~ Humidity9am + Humidity3pm + Pressure9am + Pressure3pm, data = train, prior = flat)
+
+mod_nb <- naiveBayes(RainTomorrow ~ ., data = train)
+
+# create model list
+mod_list <- c('Intercept','Simple','Multiple','Additive','Interaction','LDA','LDA flat','Naive Bayes')
+
+
+# calculate train error
+train_error <- c(
+  calc_err(train$RainTomorrow, ifelse(predict(mod_intercept, newdata = train, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(train$RainTomorrow, ifelse(predict(mod_simple, newdata = train, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(train$RainTomorrow, ifelse(predict(mod_multiple, newdata = train, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(train$RainTomorrow, ifelse(predict(mod_additive, newdata = train, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(train$RainTomorrow, ifelse(predict(mod_interaction, newdata = train, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(train$RainTomorrow, predict(mod_lda, newdata = train)$class),
+  calc_err(train$RainTomorrow, predict(mod_lda_flat, newdata = train)$class),
+  calc_err(train$RainTomorrow, predict(mod_nb, newdata = train))
+)
+# calculate test error
+test_error <- c(
+  calc_err(test$RainTomorrow, ifelse(predict(mod_intercept, newdata = test, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(test$RainTomorrow, ifelse(predict(mod_simple, newdata = test, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(test$RainTomorrow, ifelse(predict(mod_multiple, newdata = test, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(test$RainTomorrow, ifelse(predict(mod_additive, newdata = test, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(test$RainTomorrow, ifelse(predict(mod_interaction, newdata = test, type = 'response') > 0.5, "Yes", "No")),
+  calc_err(test$RainTomorrow, predict(mod_lda, newdata = test)$class),
+  calc_err(test$RainTomorrow, predict(mod_lda_flat, newdata = test)$class),
+  calc_err(test$RainTomorrow, predict(mod_nb, newdata = test))
+)
+
+df <- data.frame(
+  mod_list, train_error, test_error
+)
+
+knitr::kable(df)
+```
+
+
+
+# Aufgabe 7 Konzeptprüfung [6 Punkte]
+
+Beantworten Sie die folgenden Fragen auf der Grundlage Ihrer Ergebnisse aus den Aufgaben **[je 1 Punkt]**.
+
+**(a)** In Aufgabe 5, warum schneidet Naive Bayes schlecht ab?
+Der Nachteil eines Naive Bayes ist es, dass große Mengen von Daten erforderlich  sind  um gute Ergebnisse zu erhalten und wenn ein Wert in den Daten nicht vertreten ist, wird die Ergebniswahrscheinlichkeit auf 0 geschätzt.
+
+**(b)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle schneidet am besten ab?
+Das Modell mit cut_10 (gleich mit e?)
+
+**(c)** Basierend auf Ihren Ergebnissen in Aufgabe 1+2, welches dieser Modelle könnte Ihrer Meinung nach zu wenig geeignet sein?
+Das Modell mit cut_90 -> overfitting
+
+**(d)** Welches dieser Modelle könnte Ihrer Meinung nach aufgrund Ihrer Ergebnisse in Aufgabe 5 überdimensioniert sein?
+Das Interaction-Modell, das es sehr komplex ist. 
+
+**(e)** Welche der Klassifikatoren aus Aufgaben 1+2 bevorzugen Sie?
+Das Modell mit cut_10 (gleich mit b?)
+
+**(f)** Nennen Sie die Metrik, die Sie für Ihre Entscheidung verwendet haben, teilweise **(e)**, und einen Grund für die Verwendung dieser Metrik.
+Das Modell mit c = 0,10 erreicht die höchste Sensitivität, es erkennt Krebs also am häufigsten.
+  

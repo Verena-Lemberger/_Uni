@@ -1,0 +1,427 @@
+---
+title: "Ex05 - Model Explainability"
+author: "Sascha Metzger - 1910837830 - DSIA Algorithmik & Statistik, SS 2019"
+date: '2019-01-01 (updated: `r Sys.Date()`)'
+output:
+  html_document:
+    df_print: paged
+urlcolor: cyan
+---
+
+```{r options, include = FALSE}
+knitr::opts_chunk$set(fig.align = "center")
+```
+
+Bitte um Beachtung der [Übungs-Policy](https://weblearn.fh-kufstein.ac.at/mod/page/view.php?id=46374) für genaue Anweisungen und einige Beurteilungsnotizen. Fehler bei der Einhaltung ergeben Punktabzug.
+
+*Bearbeitungszeit*: 6 Std.
+---
+## Einleitung
+Classification use case - Titanic data
+
+```{r, warning = F, message = F}
+library(DALEX)
+library(dplyr)
+library(tidyr)
+library(fastDummies)
+library(tidyverse)
+library(h2o)
+library(caret)
+library(tidymodels)
+
+# install_github('rstudio/reticulate',force=T)
+# devtools::install_github("rstudio/keras")
+
+library(devtools)
+library(reticulate)
+library(tensorflow)
+# install_tensorflow(version = "1.12")
+library(keras)
+# keras::install_keras()
+
+set.seed(123)
+```
+
+Um die Anwendung von DALEX auf Klassifizierungsprobleme zu veranschaulichen, werden wir den im titanic-Paket verfügbaren titanic_train-Datensatz verwenden. Unser Ziel ist die Vorhersage der Wahrscheinlichkeit, dass die Person die Katastrophe überlebt, basierend auf ausgewählten Merkmalen wie Kabinenklasse, Geschlecht, Alter, Anzahl der Familienmitglieder auf dem Schiff, Fahrpreis und Einschiffung. 
+
+
+Zu Beginn werden wir die Daten aufbereiten und bereinigen. Der erste Unterschied zwischen Keras und h2o besteht darin, dass bei Keras Prädiktoren und explained Variable als separate numerische Tensoren angegeben werden müssen. Das bedeutet, dass wir, wenn wir einen Faktor in das Keras-Modell einfügen wollen, ihn zuerst kodieren müssen. Wir werden eine Ein-Hot-Kodierung mit der Funktion dummy_cols aus dem Paket fastDummies durchführen (sowohl für h2o als auch für Keras, so dass Anzahl und Art der Eingaben identisch sind).
+
+Für den Vergleich erstellen wir auch ein drittes Modell - tree-based - verwende dazu zum Beispiel ein XGBoost Modell oder auch "nur" einen Decision Tree.
+
+**Wichtig**: Wir fokussieren uns wirklich auf die Anwendung von Dalex und auch die Interpretation der Outputs. Diese Übung wird *nicht* automatisiert bewertet - es geht vorrangig um die Verknüpfung der Konzepte - auch ein wenig um Grundlagen Neuronaler Netze.
+
+# Daten-Vorbereitung und Cleaning **[3 Punkte]**
+
+Bereiten wir die Daten so auf dass wir die Variablen `Survived, PClass, Sex, Age, Sibsp, Parch, Fare, Embarked` verwenden. Wir konvertieren die "geeigneten" Variablen als Factor - z.B. Survived. Eine neue Variable `Family_members` ergibt sich aus der Summe der Variablen `SibSp und Parch`. Wir verwerfen `NA` und erstellen "Dummy-Cloumns". Zum Schluss verwerfen wir eben die "überflüssigen" Variablen. ("Sex, Embarked, Parch, Sibsp" und Survived wird nicht "dummy coded").
+
+```{r, message=F, warning = F}
+titanic_small = read.csv("data/train.csv")
+
+data <- titanic_small %>%
+  select(Survived, Pclass, Sex, Age, SibSp, Parch, Fare, Embarked) %>%
+  mutate_at(c("Survived", "Sex", "Embarked"), as.factor) %>%
+  mutate(Family_members = SibSp + Parch) %>%
+  na.omit() %>%
+  dummy_cols() %>%
+  select(-Sex, -Embarked, -Survived_0, -Survived_1, -Parch, -SibSp)
+
+str(data)
+```
+Für Keras müsssen wir den "XY-Split" machen. Hinweis - Keras benötigt eine Matrix und "Survived" soll numerisch sein.
+
+```{r, warning = F}
+set.seed(123)
+titanic_small_y <- data %>% select(Survived) %>% mutate(Survived = as.numeric(as.character(Survived))) %>% as.matrix()
+titanic_small_x <- data %>% select(-Survived) %>% as.matrix()
+```
+
+# Modelle **[4 Punkte]**
+
+### H2O 
+Wir können das MLP-Modell in h2o mit der h2o.deeplearning-Funktion aufbauen. Dazu müssen wir zuerst h2o initialisieren und titanic_small in H2OFrame konvertieren.
+Hinweis: H2O benötigt Java auf eurem System, installiert daher 64-bit Java und achtet auf den richtigen "Pfad". Ändert bzw. löscht ggf. die "JAVA_HOME" Variable und seht euch den "PATH" von User und System genau an.
+
+```{r, message=F, warning=F}
+h2o::h2o.init()
+h2o::h2o.no_progress()
+
+titanic_h2o <- as.h2o(data, destination_frame = "titanic_small")
+
+model_h2o <- h2o.deeplearning(
+  x = 2:11,
+  y = 1,
+  training_frame = "titanic_small",
+  activation = "Rectifier",
+  hidden = c(16, 8),
+  epochs = 100,
+  rate = 0.01,
+  adaptive_rate = FALSE,
+  loss = 'CrossEntropy',
+)
+```
+
+Was siehst du im Output? Welche "Art" von NN trainieren wir? Convolutional, LSTM? oder wie heisst das noch gleich?
+Feed-forward multilayer artificial neural network
+
+### Keras
+Ja man kann Keras und tensorflow auch in R verwenden - Hinweis zur Einrichtung - das Paket `tensorflow` hat eine Funktion `install_tensorflow()` dieses verwendet miniconda um eine separate Umgebung für R+Python anzulegen.
+Um ein neuronales Netz in Keras aufzubauen, müssen wir Schichten stapeln, im Falle von MLP werden wir layer_dense verwenden. Das Schema folgt `keras_model_sequential() %>% layer_dense() %>% 
+
+```{r, message=F, warning=F}
+# Again use 16,8 hidden neurons, use ReLU, and the "same parameters" as h2o.
+model_keras <- keras_model_sequential() %>% # 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10)) %>% 
+  layer_dense(units = 8, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid") # for classification
+
+model_keras %>% compile(
+  optimizer = optimizer_sgd(lr = 0.01),
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history <- model_keras %>% fit(
+  titanic_small_x,
+  titanic_small_y,
+  epochs = 100,
+  validation_split = 0.20,
+  verbose = 0 # set to 1 to get show the output and the us/step metric
+)
+```
+
+Versuche die 2 Modelle so "ähnlich" wie möglich zu erstellen - sind sie wirklich "gleich?". 
+Nein, die beiden Modelle sind nicht "gleich", da es zwei verschiedene Packages sind und (obwohl die gleichen Layer verwendet wurden), sind sie nicht 1:1 identisch. Außerdem verwenden beide Pakete unterschiedliche Default-Werte für Ihre Parameter. Daher werden wir vermutlich unterschiedliche Ergebnisse bekommen, auch wenn wir versuchen beide Modelle so ähnlich wie möglich zu gestalten.
+
+
+- Wie viele us (mikrosekunden) - braucht dein Endgerät pro Sample? Wie würdest du die Leistung "deines Gerätes" einordnen? Hinweis: Wie viele Kerne verwendet Keras - Nur 1 oder mehrere?
+Keras benötigt zwischen 995us/step und 260 us/step. Meine Hardware ist ein MBP 2,3 GHz Dual-Core Intel Core i5 und daher würde ich die Performance meines Geräts im unteren Mittelfeld einordnen. 
+Im Default verwendet Keras / Tensorflow alle verfügbaren Kerne auf der Maschine. (Diese Einstellung kann geändert werden: https://github.com/rstudio/keras/issues/562)
+
+### Tree (verwende Parsnip)
+
+Wir erstellen noch ein "Tree-basiertes Modell" mit Parsnip. Notwendige Funktionen sind: `boost_tree(), set_engine(), fit()`. Versuche ein "persönliches" Modell zu erstellen, welches sich mit den NNs messen kann.
+
+```{r, message=F, warning=F}
+model_bt<- boost_tree(
+  mode = "regression", # must be regression not classification so the explainer can calculate additional metrics
+  trees = 100,
+  learn_rate = 0.01,
+)
+
+data_tree <- as.data.frame(data.matrix(data))
+model_bt_fitted <- model_bt %>% set_engine("xgboost") %>% fit(Survived ~ ., data = data_tree)
+```
+
+
+
+### Prädiktionen
+Wir können nun die Vorhersagen aller Modelle überprüfen. Denken Sie daran, dass h2o und keras unterschiedliche Implementierungen desselben Algorithmus verwenden und dass es eine Menge anderer, oft randomisierter Parameter gibt, wie z.B. die Werte für die Anfangsgewichte. Um genau dieselben Ergebnisse zu erhalten, müssten Sie also alle berücksichtigen.
+
+Wir verwenden unseren Passagier "Henry". Passagier erster Klasse, 8 Jahre alt, allein, 72$ Fahrpreis, männlich. Ging in Cherbourg an Bord.
+
+Was sagen die drei Modelle zu "Henry"?
+
+```{r}
+henry <- data.frame(
+  Pclass = 1,
+  Age = 8,
+  Family_members = 0,
+  Fare = 72,
+  Sex_male = 1,
+  Sex_female = 0,
+  Embarked_S = 0,
+  Embarked_C = 1,
+  Embarked_Q = 0,
+  Embarked_ = 0
+)
+```
+
+```{r, warning=F, message=F}
+henry_h2o <- as.h2o(henry, destination_frame = "henry")
+henry_keras <- as.matrix(henry)
+```
+
+```{r}
+pred_h2o <- predict(model_h2o, henry_h2o)
+as.data.frame(pred_h2o)$predict
+```
+```{r}
+pred_keras <- predict(model_keras, henry_keras)
+round(as.data.frame(pred_keras)$V1)
+```
+
+```{r}
+predict_tree <- predict(model_bt_fitted, henry)
+round(predict_tree$.pred)
+```
+1 bedeutet Henry überlebt, 0 bedeutet er überlebt nicht.
+
+# Die explain() Funktion **[5 Punkte]**
+Der erste Schritt bei der Verwendung des DALEX-Pakets besteht darin, das Black-Box-Modell mit Metadaten zu umhüllen, die die Modellschnittstellen vereinheitlichen.
+
+Um einen Explainer zu erstellen, verwenden wir die Funktion `explain()`. Für die mit dem h2o-Paket erstellten Modelle müssen wir eine benutzerdefinierte Vorhersagefunktion bereitstellen, die zwei Argumente benötigt: Modell und neue Daten und einen numerischen Vektor mit Vorhersagen zurückgibt.
+
+```{r}
+custom_predict_h2o <- function(model, newdata)  {
+  newdata_h2o <- as.h2o(newdata)
+  res <- as.data.frame(h2o.predict(model, newdata_h2o))
+  return(as.numeric(res$p1))
+}
+```
+
+Wir verwenden nun den "Explainer" - dieser enhält: `model`, `data`, `y`(numerisch), `predict_function`(unsere custom_predict_h2o), `label="MLP_h2o"`. `colorize=F`
+
+```{r, warning=F, message=F}
+data_x <- data[ , -1]
+data_y <- as.numeric(as.character(data$Survived))
+
+explainer_titanic_h2o <- DALEX::explain(
+  model_h2o, 
+  data = data_x, 
+  y = data_y, 
+  predict_function = custom_predict_h2o,
+  label = "MLP_h2o",
+  colorize = F,
+  type = "classification")
+```
+
+
+```{r}
+custom_predict_keras <- function(model, newdata)  {
+  res <- as.data.frame(predict(model, newdata))
+  return(res$V1)
+}
+
+explainer_titanic_keras <- DALEX::explain(
+  model = model_keras, 
+  data = titanic_small_x, 
+  y = as.numeric(titanic_small_y),
+  predict_function = custom_predict_keras, 
+  label = "MLP_keras", 
+  colorize = FALSE,
+  type = "classification")
+```
+
+```{r, warning=F, message=F}
+custom_predict_tree <- function(model, newdata)  {
+  res <- predict(model, newdata)
+  return(res$.pred)
+}
+
+explainer_titanic_tree <- DALEX::explain(
+  model_bt_fitted, 
+  data = data_tree, 
+  y = data_tree$Survived, 
+  predict_function = custom_predict_tree,
+  label = "MLP_Tree",
+  colorize = F,
+  type = "classification"
+  )
+```
+Der Output ist "ziemlich verbose" versuche ihn so umfassend wie möglich zu beschreiben.
+Der Output enthält Informationen über den Explainer. Er zeigt das Label des Modells, wie viele Daten verwendet wurden (Spalten und Samples), eine Information des Modells (Package und Typ, bspw. "Classification"). Weiter enhält der Output Infos über die Predict-Function sowie Informationen über die Prediktierten Werte und die Residuals (min, mean, max). Sollten Fehler beim Erstellen des Explainers austreten, bspw. wenn keine Residuals berechnet werden konnten oder die Y-Variable falsch formatiert sein (z.B. CHR anstatt Factor oder Integer) erscheint diese Warnung ebenfalls im Output.
+
+# Model performance **[5 Punkte]**
+Die Funktion `model_performance()` berechnet Vorhersagen und Residuen für Validierungsdatensätze.
+
+```{r}
+mp_titanic_h2o <- model_performance(explainer_titanic_h2o)
+mp_titanic_keras <- model_performance(explainer_titanic_keras)
+mp_titanic_tree <- model_performance(explainer_titanic_tree)
+```
+
+```{r}
+print(mp_titanic_h2o)
+```
+```{r}
+print(mp_titanic_keras)
+```
+```{r}
+print(mp_titanic_tree)
+```
+
+Die generische Funktion print() gibt Quantile für Residuen zurück, ebenso Metriken (Achtung bei Klassifikation)
+Die Accuracy von h2o ist besser als die von Keras (0,83 vs. 0,74). Beim Tree ist die Accuracy 1.
+
+
+Generic function plot() zeigt eine umgekehrte empirische kumulative Verteilungsfunktion für absolute Werte von Residuen. Diagramme können für ein oder mehrere Modelle generiert werden.
+
+```{r}
+plot(mp_titanic_h2o, mp_titanic_keras, mp_titanic_tree)
+```
+
+Wir können auch die plot()-Funktion verwenden, um einen alternativen Vergleich von Residuen zu erhalten. Wenn wir den Parameter `geom = "boxplot"` setzen, können wir die Verteilung der Residuen für ausgewählte Modelle vergleichen.
+
+```{r}
+plot(mp_titanic_h2o, mp_titanic_keras, mp_titanic_tree, geom = "boxplot")
+```
+- Versuche zu Interpretieren - woher kommen die Unterschiede, beschreibe auch die "Hickups" von Dalex mit den diversen Paketen. 
+
+Die Abbildung vergleicht die Verteilungen der absoluten Residuen. Je kleiner die Werte desto besser. Die roten Punkte stehen für den RMSE.
+Die "Hickups" entstehen durch die verwendeten Modelle. Random-Forrests können aufgrund der Art und Weise wie sie funktionieren einfacher bewertet werden. Neuronale Netze sind viel schwieriger zu bewerten und zu analysieren, da innerhalb eines Netzes die Anazhl der Parameter schnell in die tausende gehen kann und dadurch die viel zitierte "Black Box" entsteht. 
+Das Dalex-Package verfolgt zudem einen "Model-agnostic" Ansatz. Es versucht eine Erklärung für möglichst viele verschiedene Modelle zu finden. Im Vergleich dazu gibt es Modell spezifische Ansätze, welche zwar nur ein Modell (bspw. einen boosted Tree) erklären können, dies jedoch besser. 
+
+
+# Variable importance **[5 Punkte]**
+Mit dem DALEX-Paket sind wir in der Lage, besser zu verstehen, welche Variablen wichtig sind.
+
+Die Bedeutung der agnostischen Modellvariablen wird mit Hilfe von Permutationen berechnet. Wir subtrahieren einfach die für den Validierungsdatensatz berechnete Verlustfunktion mit permutierten Werten für eine einzelne Variable von der für den Validierungsdatensatz berechneten Verlustfunktion.
+
+Diese Methode ist in der Funktion `variable_importance()` implementiert.
+
+```{r, warning=F, message=F}
+vi_titanic_h2o <- variable_importance(explainer_titanic_h2o)
+vi_titanic_keras <- variable_importance(explainer_titanic_h2o)
+vi_titanic_tree <- variable_importance(explainer_titanic_tree)
+```
+
+Wir können alle Modelle mit der generischen Funktion plot() vergleichen.
+
+```{r}
+plot(vi_titanic_h2o)
+```
+
+```{r}
+plot(vi_titanic_keras)
+```
+
+```{r}
+plot(vi_titanic_tree)
+```
+Die Länge des Intervalls korrespondiert mit der Bedeutung der Variablen. Ein längeres Intervall bedeutet einen größeren Verlust, so dass die Variable wichtiger ist.
+Zum besseren Vergleich der Modelle können wir die Wichtigkeit der Variablen mit dem `type="difference"` auf 0 setzen.
+
+```{r, message=F, warning=F}
+vi_titinic_h2o <- variable_importance(explainer_titanic_h2o, type="difference")
+vi_titinic_keras <- variable_importance(explainer_titanic_keras, type="difference")
+vi_titanic_tree <- variable_importance(explainer_titanic_tree, type="difference")
+plot(vi_titinic_h2o, vi_titinic_keras, vi_titanic_tree)
+```
+Die Plots zeigen, dass der Tree und H2o vor allem auf die Variablen "Pclass" und "Sex_female" schauen. Im Vergleich dazu bewertet Keras "Age", "Fare" und "Famaly_members" höher. Ebenso ist der Drop-out Loss bei Keras bei weitem nicht so hoch wie bei den beiden anderen Modellen. Dies deutet darauf hin, dass Keras bei weitem nicht so viele Units "droppen" lässt. 
+
+
+# Variable response
+Die in diesem Abschnitt vorgestellten "Explainer" dienen dem besseren Verständnis der Beziehung zwischen einer Variablen und dem Modell-Output.
+Weitere Einzelheiten zu den in diesem Abschnitt beschriebenen Methoden finden Sie im Abschnitt Variable Antwort in den DALEX-Dokumenten.
+
+## 7.1 Partial Dependence Plot **[3 Punkte]**
+Partial Dependence Plots (PDP) sind eine der beliebtesten Methoden zur Untersuchung der Beziehung zwischen einer kontinuierlichen Variablen und dem Modellergebnis.
+
+Die Funktion `variable_profile()` (ältere Versionen mit variable_response) mit dem Parametertyp = "pdp" ruft die Funktion `pdp::partial()` auf, um die PDP-Antwort zu berechnen. Es gibt mehrere Varianten der `variable_*()` Funktionen für PDP und ALE. Versuche mehrere
+
+```{r, warning=F, message=F}
+vr_age_h2o  <- variable_effect(explainer_titanic_h2o, variable =  "Age")
+vr_age_keras  <- variable_effect(explainer_titanic_keras, variable =  "Age")
+vr_age_tree <- variable_effect(explainer_titanic_tree, variable="Age")
+plot(vr_age_h2o, vr_age_keras, vr_age_tree)
+```
+
+```{r, warning=F, message=F}
+vrp_age_h2o  <- variable_profile(explainer_titanic_h2o, variable =  "Age")
+vrp_age_keras  <- variable_profile(explainer_titanic_keras, variable =  "Age")
+vrp_age_tree <- variable_profile(explainer_titanic_tree, variable="Age")
+plot(vrp_age_h2o)
+plot(vrp_age_keras)
+plot(vrp_age_tree)
+```
+
+Wie interpretierst du die Response?  Versuche Verschiedene Arten zu vergleichen, was fällt auf?
+Wie verhalten sich die einzelnen Modelle (2 NNs zueinander), Tree vs. die anderen. Interpretiere die Effekte, Ursachen und Begründe die Darstellung.
+
+Der pdp-Plot zeigt den Effekt, den ein Feature auf die Prediction unseres Modells hat. 
+
+Im variable_profile Plot zeigt der PDP wie sich das Feature "Age" auf die Überlebenswahrscheinlichkeit auswirkt. Die Neuronalen-Netze zeigen sehr schön wie die Survival-Rate abnimmt je älter die Person ist. Das h2o-Modell bewertet die Überlebenswahrscheinlichkeit von Kindern sehr hoch, sie sinkt allerdings dann sehr schnell bis ca. 20 Jahren, steigt dann leicht bis ca. 30 und sinkt dann nur noch leicht ab. Keras bewertet die Überlebenswahrscheinlichkeit von Personen bis ca. 20 Jahren noch bei über 45%. Im Vergleich dazu liegt hier das h2o-Modell bei Personen mit 20 Jahren nur bei unter 40%. Bei beiden Modellen lässt sich allerdings eine abnehmende Überlebenswahrscheinlichkeit mit höherem Alter feststellen. 
+Der Plot zum Tree-Modell zeigt das bekannte zackige Muster von Tree-Modellen. Ebenso wie bei den Neuronalen Netzen haben jüngere Passagiere höhere Überlebenswahrscheinlichkeiten. Allerdings ist der Maximalwert hier bei ca. 30 Jahren und nicht im ganz jungen Alter (Ähnlichkeit zu h2o). Ebenso ist das Tree-Modell "flacher" und es bewegt sich eher im Bereich des Means. Neuronale Netze bewegen sich hier in einem größeren Raum.
+
+Der variable_effect Plot zeigt ebenso wie wichtig die Variable "Age" für das jeweilige Modell und die Prediktion ist. Es zeigt schön, dass für den Tree das Alter immer eine hohe Rolle spielt, die Netze allerdings bewerten dieses Feature immer weniger wichtig je mehr das Alter steigt. Es lässt sich auch ein eher linearer Abfall beim Keras-Modell erkennen, das h2o-Modell bewertet das Alter anfangs noch sehr hoch bevor es stark abfällt (es ist das gleiche Muster wie wir im variable_profile Plot sehen).  
+
+Zusammengefasst machen die Plots Sinn. Es wurden eher die jüngeren Personen von der Titanic gerettet als ältere. Diese Analyse könnte auch noch mit dem Geschlecht und der Passagier-Klasse durchgeführt werden. Vermutlich wurden Kinder und Frauen (vor allem aus der ersten Klasse) bevorzugt in die Rettungsschiffe gebracht.
+
+
+
+## 7.2 Acumulated Local Effects plot **[3 Punkte]**
+Der ALE-Plot (Acumulated Local Effects) ist die Erweiterung des PDP, der für hochkorrelierte Variablen besser geeignet ist.
+Die Funktion `variable_effect_accumulated_dependency()`  ruft die Funktion ALEPlot::ALEPlot() auf, um die ALE-Kurve für die Variable Alter zu berechnen.
+
+```{r, warning=F, message=F}
+vr_age_h2o <- variable_effect_accumulated_dependency(explainer_titanic_h2o, variables =  c("Pclass", "Fare"))
+vr_age_keras <- variable_effect_accumulated_dependency(explainer_titanic_keras, variables =  c("Pclass", "Fare"))
+vr_age_tree <- variable_effect_accumulated_dependency(explainer_titanic_tree, variables =  c("Pclass", "Fare"))
+plot(vr_age_h2o, vr_age_keras, vr_age_tree)
+```
+
+Die Profile-Plots können irreführend sein, wenn die erklärenden Variablen korreliert sind. In unserem Fall bspw. sind die Features "Fare" und "Pclass" wahrscheinlich positiv korreliert, da die Tickets für höhere Klassen wahrscheinlich mehr gekostet haben.
+
+
+## 8 Prediction understanding **[2 Punkte]**
+Die Funktion `variable_attribution()` ist ein Wrapper um das Breakdown-Paket. Die Modellvorhersage wird mit Breakdown-Plots visualisiert, die den Beitrag jeder im Modell vorhandenen Variablen zeigen. Die Funktion `prediction_breakdown()` erzeugt Variablenattribute für die ausgewählte Vorhersage. Die generische Funktion plot() zeigt diese Zuordnungen.
+
+```{r, warning=F, message=F} 
+breakdown_h2o <- variable_attribution(explainer_titanic_h2o, new_observation = henry, type = "break_down")
+breakdown_keras <- variable_attribution(explainer_titanic_keras, new_observation = henry_keras, type = "break_down")
+breakdown_tree <- variable_attribution(explainer_titanic_tree, new_observation = henry, type = "break_down")
+
+plot(breakdown_h2o)
+plot(breakdown_keras)
+plot(breakdown_tree)
+```
+
+Wiederum - was ist auffällig für unser Subjekt?
+
+Der Breakdown-Plot zeigt welche Variable wie wichtig war ion der Prediktion des Modells. Für Henry zeigt. da h2o Modell, dass die Überlebenswahrscheinlichkeit gestiegen ist, da er in der 1. Klasse und 8 Jahre alt war. Der Keras-Plot ist interessant, da er anscheinend "Fare" mit "Family_Members" verwechselt (allerdings weiß ich nicht wieso?). Das Tree-Modell bewertet vieles negativ, vor allem "Age".
+
+(Optional: Findest du auffällige Interaktionen? SHAP Values?)
+```{r, warning=F, message=F} 
+breakdown_h2o <- predict_parts_shap(explainer_titanic_h2o, new_observation = henry, type = "break_down")
+
+breakdown_keras <- predict_parts_shap(explainer_titanic_keras, new_observation = henry_keras, type = "break_down")
+
+breakdown_tree <- predict_parts_shap(explainer_titanic_tree, new_observation = henry, type = "break_down")
+
+plot(breakdown_h2o)
+plot(breakdown_keras)
+plot(breakdown_tree)
+```
+
+Interessant ist bei diesem Plot zu sehen, dass die Neuronalen Netze die Features "Age" und "Pclass" positiv bewerten (es erhöht die Überlebenswahrscheinlichkeit). Keras bewertet die Abwesenheit von Familienmitgliedern sehr negativ. Der Tree hat interessanterweiße die beiden Features "Pclass" und "Fare" sehr positiv bewertet und bestraft "Sex_female", aber auch "Family_members" und "Age" (die Features, welche die NN positiv bewertet haben).

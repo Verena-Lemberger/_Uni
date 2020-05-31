@@ -1,0 +1,183 @@
+---
+title: "Übung 02"
+author: "Sascha Metzger - 1910837830 - DSIA Algorithmik & Statistik, SS 2019"
+date: '2019-01-01 (updated: `r Sys.Date()`)'
+output:
+  html_document:
+    df_print: paged
+urlcolor: cyan
+---
+
+Bitte um Beachtung der [Übungs-Policy](https://algo2-lab.netlify.com/%C3%BCbungs-policy.html) für genaue Anweisungen und einige Beurteilungsnotizen. Fehler bei der Einhaltung ergeben Punktabzug.
+
+
+Für diese Hausaufgabe verwenden wir Daten aus [`wisc-trn.csv`](wisc-trn.csv.csv) und[`wisc-tst.csv`](wisc-tst.csv.csv), die Train- bzw. Testdaten enthalten. `wisc.csv` wird bereitgestellt, aber nicht verwendet. Dies ist eine Modifikation des Datensatzes Brustkrebs Wisconsin (Diagnostic) aus dem UCI Machine Learning Repository. Es wurden nur die ersten 10 Feature-Variablen bereitgestellt. (Und das ist alles, was du verwenden solltest.)
+
+- [UCI Page](https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic))
+- [Data Detail](https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.names)
+
+Sie sollten erwägen, die Response als Faktorvariable zu benutzen. 
+
+Du kannst das `caret` package und die Trainingspipeline verwenden, um diese Aufgaben zu erledigen. Bei Verwendung der Funktion `train()`, führe zuerst `set.seed(1337)` aus. 
+
+Noch besser: verwende `tidymodels`!
+
+```{r setup}
+library(caret)
+library(dplyr)
+```
+
+```{r}
+wisc_trn = read.csv("wisc-trn.csv")
+wisc_tst = read.csv("wisc-tst.csv")
+
+wisc_trn$class = as.factor(wisc_trn$class)
+wisc_tst$class = as.factor(wisc_tst$class)
+
+unique(wisc_tst$class)
+```
+
+
+***
+
+# Aufgabe 1 (Tuning KNN)
+
+**[6 points]** Trainiere ein KNN Model mit allen verfügbaren Prädiktoren, **kein Data Preprocessing**, 5-fold Cross-Validation, und ein gut gewählter Wert des Tuning-Parameters. Betrachte $k = 1, 3, 5, 7, \ldots, 101$. Speichere den "getunten" Model-Fit zu den Trainingsdaten für spätere Verwendung. Plotte die cross-validatierten Accuracies als Funktion des Tuning-Parameters.
+
+```{r}
+set.seed(1337)
+# k 1-101
+k <- c(1:101) 
+# 5 fold Cross Validation
+trControl <- trainControl(method = "cv", number = 5)
+
+wisc_knn <- train(class~., data = wisc_trn, method = "knn", tuneGrid = expand.grid(k = k) , trControl = trControl)
+plot(wisc_knn)
+
+wisc_knn_sorted <- wisc_knn$results %>% arrange(desc(Accuracy))
+wisc_knn_sorted
+
+wisc_knn_pred <- predict(wisc_knn, newdata = wisc_tst)
+wisc_knn_pred <- confusionMatrix(wisc_knn_pred, wisc_tst$class)
+wisc_knn_pred
+```
+
+
+***
+
+# Aufgabe 2 (Mehr Tuning KNN)
+
+**[6 points]**  Trainiere ein KNN Model mit allen verfügbaren Prädiktoren, Prädiktoren skaliert mit Mean 0 und Varianz 1, 5-fold Cross-Validation, und ein gut gewählter Wert des Tuning-Parameters. Betrachte $k = 1, 3, 5, 7, \ldots, 101$. Speichere den "getunten" Model-Fit zu den Trainingsdaten für spätere Verwendung. Plotte die cross-validatierten Accuracies als Funktion des Tuning-Parameters.
+
+
+```{r}
+set.seed(1337)
+k <- c(1:101) 
+trControl <- trainControl(method = "cv", number = 5)
+
+wisc_knn_tuned <- train(class~., data = wisc_trn, preProcess = c("center","scale"), method = "knn", tuneGrid = expand.grid(k = k) , trControl = trControl)
+plot(wisc_knn_tuned)
+
+wisc_knn_tuned_sorted <- wisc_knn_tuned$results %>% arrange(desc(Accuracy))
+wisc_knn_tuned_sorted
+
+wisc_knn_tuned_pred <- predict(wisc_knn_tuned, newdata = wisc_tst)
+wisc_knn_tuned_pred <- confusionMatrix(wisc_knn_tuned_pred, wisc_tst$class)
+wisc_knn_tuned_pred
+```
+
+
+***
+
+# Aufgabe 3 (Random Forest?)
+
+**[6 points]** Da wir `caret oder tidymodels` eingeführt haben, wird es extrem leicht, verschiedene Statistical Learning-Methoden zu versuchen. Trainiere einen random forest mit allen verfügbaren Prädiktoren, **kein Data Preprocessing**, 5-fold Cross-Validation, und ein gut gewählter Wert des Tuning-Parameters.Es gibt nur einen Tuning-Parameter, `mtry`. Betrachte `mtry` Werte zwischen 1 und 10. Speichere den "getunten" Model-Fit zu den Trainingsdaten für spätere Verwendung. Plotte die cross-validatierten Accuracies als Funktion des Tuning-Parameters. Reporte die Cross-validierten Accuracies als Funktion des Tuning-Parameters mit einer gut formatierten Tabelle.
+
+```{r}
+set.seed(1337)
+trControl <- trainControl(method = "cv", number = 5)
+tunegrid <- expand.grid(.mtry=c(1:10))
+wisc_rf <- train(class~., data = wisc_trn, method = "rf", tuneGrid = tunegrid, trControl = trControl)
+
+wisc_rf_sorted <- wisc_rf$results %>% arrange(desc(Accuracy))
+wisc_rf_sorted
+
+wisc_rf$results
+plot(wisc_rf)
+```
+
+```{r}
+set.seed(1337)
+wisc_rf_pred <- predict(wisc_rf, newdata = wisc_tst)
+
+wisc_rf_prob <- predict(wisc_rf, newdata = wisc_tst, type = "prob")
+head(wisc_rf_prob, 10)
+
+wisc_conf_matrix_rf <- confusionMatrix(wisc_rf_pred, wisc_tst$class)
+wisc_conf_matrix_rf
+
+wisc_conf_matrix_rf
+```
+
+
+***
+
+# Aufgabe 4 (Concept Checks)
+
+**[1 Punkt jeweils]** Beantworte die folgenden Fragen auf der Grundlage Ihrer Ergebnisse aus den drei Übungen. Formatiere die Antwort auf diese Aufgabe als Tabelle mit einer Spalte, die den Teil angibt, und der anderen Spalte für die Antwort. Siehe die Quelltexte `rmarkdown` für eine Vorlage dieser Tabelle.
+
+**(a)** Welcher Wert von $k$ wird für KNN gewählt, ohne Skalierung der Prädiktoren?
+
+**(b)** Welche Cross-validierte Accuracy ergibt sich für KNN ohne Skalierung der Prädiktoren?
+
+**(c)** Was ist die Test-Accuracy für KNN ohne Skalierung der Prädiktoren?
+
+**(d)** Welcher Wert von $k$ wird für KNN gewählt **mit** Skalierung der Prädiktoren?
+
+**(e)** Welche Cross-validierte Accuracy ergibt sich für KNN **mit** Skalierung der Prädiktoren?
+
+**(f)** Was ist die Test-Accuracy für KNN **mit** Skalierung der Prädiktoren?
+
+**(g)** Denken Sie, dass KNN besser "performt" **mit** oder **ohne** Skalierung der Prädiktoren?
+
+**(h)** Welcher Wert von `mtry` wird für den Random Forest gewählt?
+
+**(i)** Unter Verwendung des Random Forest, was ist die (estimated) Probability, dass die 10. Observation der Test-Daten ein "cancerous" Tumor ist?
+
+**(j)** Unter Verwendung des Random Forest, was ist die (test) Sensitivity?
+
+**(k)** Unter Verwendung des Random Forest, was ist die (test) Specificity?
+
+**(l)** Basierend auf den Ergebnissen, ist das Random Forest- oder das KNN-Model von besserer Performance?
+
+```{r}
+print("Accuracy Tuned KNN")
+wisc_knn_tuned_pred$overall['Accuracy']
+print("Accuracy RF")
+wisc_conf_matrix_rf$overall['Accuracy']
+```
+
+
+```{r, echo = FALSE, eval = FALSE}
+a = wisc_knn_sorted$k[1]
+b = wisc_knn_sorted$Accuracy[1]
+c = wisc_knn_pred$overall['Accuracy'] 
+d = wisc_knn_tuned_sorted$k[1]
+e = wisc_knn_tuned_sorted$Accuracy[1]
+f = wisc_knn_tuned_pred$overall['Accuracy']
+g = "mit" # "mit" "ohne"
+h = wisc_rf_sorted$mtry[1]
+i = wisc_rf_prob$B[10]
+j = wisc_conf_matrix_rf$byClass["Sensitivity"]
+k = wisc_conf_matrix_rf$byClass["Specificity"]
+l = "Random Forest" # "mit" "ohne"
+
+results = data.frame(
+  part = LETTERS[1:12],
+  answer = c(a,b,c,d,e,f,g,h,i,j,k,l)
+)
+
+knitr::kable(results)
+```
+
+
