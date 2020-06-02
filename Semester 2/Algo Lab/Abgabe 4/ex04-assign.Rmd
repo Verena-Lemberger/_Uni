@@ -1,0 +1,321 @@
+---
+title: "Ex04"
+author: "Sascha Metzger - 1910837830 - DSIA Algorithmik & Statistik, SS 2019"
+date: '2019-01-01 (updated: `r Sys.Date()`)'
+output:
+  html_document:
+    df_print: paged
+urlcolor: cyan
+---
+
+```{r options, include = FALSE}
+knitr::opts_chunk$set(fig.align = "center")
+```
+
+Bitte um Beachtung der [Übungs-Policy](https://algo2-lab.netlify.com/%C3%BCbungs-policy.html) für genaue Anweisungen und einige Beurteilungsnotizen. Fehler bei der Einhaltung ergeben Punktabzug.
+
+*Bearbeitungszeit*: 5 Std.
+
+***
+
+```{r libraries, warning=F, message=F}
+library(ISLR)
+library(caret)
+library(e1071)
+library(tidyverse)
+library(tidymodels)
+library(readr)
+library(factoextra)
+library(ggfortify)
+library(ggplot2)
+library(GGally)
+library(fpc)
+```
+
+
+
+## Aufgabe 1
+
+**[10 points]** Für diese Frage verwenden wir die `OJ`Daten aus dem `ISLR`-Paket. Wir werden versuchen, die Variable "Purchase" vorherzusagen. Nachdem Sie `uin` zu Ihrem `UIN` geändert haben, verwenden Sie den folgenden Code, um die Daten aufzuteilen.
+
+```{r, message = FALSE, warning = FALSE}
+uin = 1910837830
+set.seed(uin)
+
+glimpse(OJ)
+
+oj_split = initial_split(OJ, p = 0.5)
+oj_trn = oj_split %>% training()
+oj_tst = oj_split %>% testing()
+```
+
+
+**(a)** Stimmen Sie ein SVM mit linearem Kernel mit 5-facher Cross-Validierung auf die Trainingsdaten ab. Verwenden Sie das folgende Wertgitter für `C`. Berichten Sie die gewählten Werte aller Tuningparameter + Testgenauigkeit.
+
+```{r}
+trctrl <- trainControl(method = "cv", number = 5)
+
+cost_param <- (C = c(2 ^ (-5:5)))
+
+svm <- train(Purchase ~., data = oj_trn, 
+                    method = "svmLinear", 
+                    trControl = trctrl, 
+                    cost = cost_param, 
+                    preProcess = c("center", "scale"))
+
+svm_lin_pred <- predict(svm, oj_trn)
+svm_lin_acc <- postResample(predict(svm, oj_tst), oj_tst$Purchase)
+
+summary(svm)
+svm_lin_acc
+```
+
+
+**(b)** Abstimmung eines SVM mit Polynomkern auf die Trainingsdaten mittels 5-facher Cross-Validierung. Geben Sie kein Tuning-Grid an. (`caret` wird einen für Sie erstellen.) Berichten Sie die gewählten Werte aller Tuning-Parameter. Berichten Sie über die Genauigkeit der Testdaten.
+
+```{r}
+svm_poly_1 <- train(Purchase ~ ., data = oj_trn,
+                    method = "svmLinear2",
+                    trControl = trctrl,
+                    preProcess = c("center", "scale"))
+
+svm_poly_1_acc <- postResample(predict(svm_poly_1, oj_tst), oj_tst$Purchase)
+
+summary(svm_poly_1)
+svm_poly_1_acc
+```
+
+**(c)** Stimmen Sie ein SVM mit Radialkernel mit 5-facher Cross-Validierung auf die Trainingsdaten ab. Verwenden Sie das folgende Wertgitter für `C` und `sigma`. Berichten Sie die gewählten Werte aller Tuningparameter. Berichten Sie über die Genauigkeit der Testdaten. 
+
+```{r}
+rad_grid = expand.grid(C = c(2 ^ (-2:3)), sigma  = c(2 ^ (-3:1)))
+
+svm_radial <- train(Purchase ~ ., data = oj_trn,
+                    method = "svmRadial",
+                    trControl = trctrl,
+                    preProcess = c("center", "scale"),
+                    tuneGrid = rad_grid)
+
+svm_radial_acc <- postResample(predict(svm_radial, oj_tst), oj_tst$Purchase)
+
+summary(svm_radial)
+svm_radial_acc
+```
+
+
+
+**(d)** Stimmen Sie einen Random Forest mit einer 5-fachen Kreuzvalidierung ab. Berichten Sie die gewählten Werte aller Tuningparameter. Berichten Sie über die Genauigkeit der Testdaten.
+
+```{r}
+rf <- train(Purchase ~ ., data = oj_trn,
+            method = "rf",
+            trControl = trctrl,
+            preProcess = c("center", "scale"))
+
+rf_acc <- postResample(predict(rf, oj_tst), oj_tst$Purchase)
+
+summary(rf)
+rf_acc
+```
+
+**(e)** Fassen Sie die obigen Genauigkeiten zusammen. Welche Methode hat am besten funktioniert? Warum?
+
+```{r}
+summary_results <- tribble(~model, ~method, ~accuracy,
+                           "SVM linear", "svmLinear", 0.8168224, 
+                           "SVM polynomial", "scmLinear2", 0.8186916,
+                           "SVM radial", "svmRadial", 0.7981308, 
+                           "Random Forest", "rf", 0.7906542)
+
+summary_results
+```
+
+
+# Aufgabe 2
+
+**[10 points]** Verwenden Sie für diese Frage die Daten in `clust_data.csv`. Wir werden versuchen, diese Daten mit $k$-means zu bündeln. Aber, welche $k$ sollen wir verwenden?
+
+```{r load clust data, warning=FALSE, message=F}
+df <- read_csv("clust_data.csv")
+head(df)
+```
+
+
+**(a)** Wenden Sie $k$-means 15 mal auf diese Daten an, wobei Sie die Anzahl der Zentren von 1 bis 15 verwenden. Verwenden Sie jedes Mal `nstart = 10` und speichern Sie den Wert `tot.withinss` aus dem resultierenden Objekt. (Hinweis: Schreiben Sie eine for-Schleife.) Die `tot.withinss` misst, wie variabel die Beobachtungen innerhalb eines Clusters sind, das wir gerne niedrig halten würden. Offensichtlich wird dieser Wert also mit mehr Zentren niedriger sein, egal wie viele Cluster es wirklich gibt. Zeichne diesen Wert gegen die Anzahl der Zentren auf. Suchen Sie nach einem "Ellenbogen", der Anzahl der Zentren, in denen die Verbesserung plötzlich wegfällt. Basierend auf dieser Darstellung, wie viele Cluster sollten Ihrer Meinung nach für diese Daten verwendet werden?
+
+```{r}
+k <- 15
+WSS <- numeric(k)
+
+for(i in 1:k) {
+  WSS[i] <- kmeans(df, centers = i, nstart = 10)$tot.withinss
+}
+  
+cbind(No.of.Cluters=1:k, WSS)
+optimal_k <- plot(1:k, WSS, type="l", xlab = "No. of clusters", ylab = "Total WSS", main = "Scree Plot")
+optimal_k
+```
+Es sollten vier Cluster verwendet werden.
+
+
+**(b)** Wenden Sie $k$-means für die von Ihnen gewählte Anzahl von Zentren erneut an. Wie viele Beobachtungen werden in jedem Cluster platziert? Was ist der Wert von `tot.withinss`?
+
+```{r}
+clusters <- kmeans(df, centers = 4, nstart = 10)
+clusters
+clusters$tot.withinss
+```
+Es gibt vier Cluster mit jeweils 25 Beobachtungen. Der tot-withinns Wert liegt bei 4844.926.
+
+**(c)** Visualisieren Sie diese Daten. Plotten Sie die Daten mit den ersten beiden Variablen und färben Sie die Punkte entsprechend des $k$-means clusterings. Basierend auf diesem Plot, denken Sie, dass Sie eine gute Wahl für die Anzahl der Zentren getroffen haben? (Kurze Erklärung.)
+
+```{r}
+plotcluster(df[1:2], clusters$cluster)
+```
+
+Auf den ersten Blick scheinen die Cluster ziemlich verteilt und nicht besonders gut gewählt. Vor allem die Cluster 1 und 4 scheinen nicht besonders gut geteilt zu sein. Die Cluster zwei und drei hingegen lassen sich großteils besser unterscheiden. Auf Grundlage dieses Plots würde ich meine Entscheidung über die vier Cluster noch einmal überdenken.
+
+**(d)** Verwenden Sie PCA, um diese Daten zu visualisieren. Plotten Sie die Daten mit den ersten beiden Hauptkomponenten und färben Sie die Punkte entsprechend dem $k$-means Clustering. Basierend auf diesem Plot, denken Sie, dass Sie eine gute Wahl für die Anzahl der Zentren getroffen haben? (Kurze Erklärung.)
+
+```{r, message=F}
+cluster_pca1 <- fviz_cluster(clusters, data = df)
+
+cluster_pca1
+```
+Die Auswahl der 4 Clusterist ist sehr gut getroffen, da diese sehr gut ersichtlich und somit erklärbar sind. 
+
+**(e)** Berechnen Sie den Anteil der Variation, der durch die Hauptkomponenten erklärt wird. Machen Sie eine Darstellung des kumulierten Anteils erklärt. Wie viele Hauptkomponenten sind notwendig, um 95% der Variation der Daten zu erklären?
+
+```{r}
+pca_var <- cluster_pca$sdev^2
+pve_var <- pca_var / sum(pca_var)
+cum_pve <- cumsum(pve_var)
+pve_table <- tibble(comp = seq(1:ncol(df)), pve_var, cum_pve)
+
+ggplot(pve_table, aes(x = comp, y = cum_pve)) + 
+  geom_point() + 
+  geom_abline(intercept = 0.95, color = "red", slope = 0)
+```
+Es sind 37 Hauptkomponenten notwendig um 95% der Variation der Daten erklären zu können.
+
+# Aufgabe 3
+
+**[10 points]** Für diese Frage werden wir auf die `USArrests` Daten aus den Notizen zurückkommen. (Dies ist ein Standarddatensatz von `R`.)
+
+```{r preprocessing USArrests, warning=FALSE}
+df1 <- USArrests %>% na.omit() %>% scale() 
+df1_unscaled <- df1 %>% unscale()
+
+head(df1)
+head(df1_unscaled)
+```
+
+
+**(a)** Führen Sie hierarchisches Clustering sechsmal durch. Berücksichtigen Sie alle möglichen Kombinationen von Verknüpfungen (Average, Single, Complete) und Datenskalierung. (Skaliert, Nicht skaliert.)
+
+| Linkage  | Scaling |
+|----------|---------|
+| Single   | No      |
+| Average  | No      |
+| Complete | No      |
+| Single   | Yes     |
+| Average  | Yes     |
+| Complete | Yes     |
+
+Schneiden Sie das Dendrogramm jedes Mal auf eine Höhe, die zu vier verschiedenen Clustern führt. Plotten Sie die Ergebnisse mit einer Farbe für jeden Cluster.
+
+```{r warning=FALSE}
+dist_matrix <- dist(df1, method = "euclidean")
+dist_matrix_unscaled <- dist(df1_unscaled, method = "euclidean")
+
+hclust_single <- as.dendrogram(hclust(dist_matrix, method = "single"))
+hclust_single_unscaled <- as.dendrogram(hclust(dist_matrix_unscaled, method = "single"))
+
+hclust_single <- color_labels(hclust_single, k = 4)
+hclust_single_unscaled <- color_labels(hclust_single_unscaled, k = 4)
+
+# plot the resulting hierarchical clusters 
+plot(hclust_single, cex = 0.6, hand = -1)
+plot(hclust_single_unscaled, cex = 0.6, hand = -1)
+
+#cut trees to 4 cluster
+cut_single <- cutree(hclust_single, k = 4)
+cut_single_unscaled <- cutree(hclust_single_unscaled, k = 4)
+
+plot(cut_single)
+plot(cut_single_unscaled)
+```
+
+```{r Average Clustering, warning=FALSE}
+hclust_average <- as.dendrogram(hclust(dist_matrix, method = "average"))
+hclust_average_unscaled <- as.dendrogram(hclust(dist_matrix_unscaled, method = "average"))
+
+hclust_average <- color_labels(hclust_average, k = 4)
+hclust_average_unscaled <- color_labels(hclust_average_unscaled, k = 4)
+
+plot(hclust_average, cex = 0.6, hand = -1)
+plot(hclust_average_unscaled, cex = 0.6, hand = -1)
+
+cut_average <- cutree(hclust_average, k = 4)
+cut_average_unscaled <- cutree(hclust_average_unscaled, k = 4)
+
+plot(cut_average)
+plot(cut_average_unscaled)
+```
+
+```{r Complete Clustering, warning=FALSE}
+hclust_complete <- as.dendrogram(hclust(dist_matrix, method = "complete"))
+hclust_complete_unscaled <- as.dendrogram(hclust(dist_matrix_unscaled, method = "complete"))
+
+hclust_complete <- color_labels(hclust_complete, k = 4)
+hclust_complete_unscaled <- color_labels(hclust_complete_unscaled, k = 4)
+
+plot(hclust_complete, cex = 0.6, hand = -1)
+plot(hclust_complete_unscaled, cex = 0.6, hand = -1)
+
+cut_complete <- cutree(hclust_complete, k = 4)
+cut_complete_unscaled <- cutree(hclust_complete_unscaled, k = 4)
+
+plot(cut_complete)
+plot(cut_complete_unscaled)
+```
+
+**(b)** Basierend auf den obigen Plots, erscheint eines der Ergebnisse nützlicher als die anderen? (Es gibt hier keine richtige Antwort.) Wählen Sie Ihren Favoriten. (Nochmals, keine richtige Antwort.)
+
+Die Methode des "complete clusterings" scheint mir am sinnvollsten zu sein, insbesondere mit den skalierten Daten.Hier lassen sich nicht nur gute Ableitungen herleiten, sondern es lassen sich auch die einzelnen (echten) Cluster gut erkennen, wordurch eine gute Vergleichbarkeit gegeben ist.
+
+**(c)** Verwenden Sie die Dokumentation zu `?hclust`, um weitere mögliche Verknüpfungen zu finden. Such dir einen aus und probiere ihn aus. Vergleichen Sie die Ergebnisse mit Ihren Favoriten von **(b)**. Ist es anders?
+
+```{r Mcquitty Clustering, warning=FALSE}
+hclust_mcquitty <- as.dendrogram(hclust(dist_matrix, method = "mcquitty"))
+hclust_mcquitty_unscaled <- as.dendrogram(hclust(dist_matrix_unscaled, method = "mcquitty"))
+
+hclust_mcquitty <- color_labels(hclust_mcquitty, k = 4)
+hclust_mcquitty_unscaled <- color_labels(hclust_mcquitty_unscaled, k = 4)
+
+plot(hclust_mcquitty, cex = 0.6, hand = -1)
+plot(hclust_mcquitty_unscaled, cex = 0.6, hand = -1)
+
+cut_mcquitty <- cutree(hclust_complete, k = 4)
+cut_mcquitty_unscaled <- cutree(hclust_complete_unscaled, k = 4)
+
+plot(cut_mcquitty)
+plot(cut_mcquitty_unscaled)
+```
+
+Hier lassen sich keine gro0en Unterschiede zwischen den Complete & McQuitty Cluster erkennen.
+
+
+**(d)** Verwenden Sie die Dokumentation zu `?dist`, um andere mögliche Entfernungsmessungen zu finden. (Wir haben `euklidisch` verwendet.) Wählen Sie eine (nicht `binär`) und versuchen Sie es. Vergleichen Sie die Ergebnisse mit Ihren Favoriten von **(b)**. Ist es anders?
+
+```{r, warning=F, message=F}
+dist_matrix1 <- dist(df1, method = "canberra")
+hclust_complete1 <-as.dendrogram( hclust(dist_matrix1, method = "complete"))
+
+hclust_complete1 <- color_labels(hclust_complete1, k = 4)
+
+plot(hclust_complete)
+plot(hclust_complete1, cex = 0.6, hand = -1)
+```
+
+Da die Canberra Methode den Abstand nur für alle positiven Werte zählt und Werte mit Null auslässt, werden diese als fehlend behandelt. Vielleicht ist diese Option nicht die beste, wenn man weiß, dass die Kriminalitätsrate in seltenen Fällen Null sein kann, aber der Unterschied zwischen den Clustern ist jetzt viel flacher. 
